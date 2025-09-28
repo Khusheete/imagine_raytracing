@@ -2,7 +2,6 @@
 #define SCENE_H
 
 #include <vector>
-#include <string>
 #include "Mesh.h"
 #include "Sphere.h"
 #include "Square.h"
@@ -55,8 +54,8 @@ class Scene {
 public:
 
 
-    Scene() {
-    }
+    Scene() = default;
+    ~Scene() = default;
 
     void draw() {
         // iterer sur l'ensemble des objets, et faire leur rendu :
@@ -77,7 +76,7 @@ public:
 
 
 
-    RaySceneIntersection computeIntersection(Ray const & ray) {
+    RaySceneIntersection computeIntersection([[maybe_unused]] Ray const & ray) {
         RaySceneIntersection result;
         //TODO calculer les intersections avec les objets de la scene et garder la plus proche
         return result;
@@ -87,7 +86,7 @@ public:
 
 
 
-    Vec3 rayTraceRecursive( Ray ray , int NRemainingBounces ) {
+    Vec3 rayTraceRecursive([[maybe_unused]] Ray ray ,[[maybe_unused]] int NRemainingBounces ) {
 
         //TODO RaySceneIntersection raySceneIntersection = computeIntersection(ray);
         Vec3 color;
@@ -95,7 +94,7 @@ public:
     }
 
 
-    Vec3 rayTrace( Ray const & rayStart ) {
+    Vec3 rayTrace([[maybe_unused]] Ray const & rayStart ) {
         //TODO appeler la fonction recursive
         Vec3 color;
         return color;

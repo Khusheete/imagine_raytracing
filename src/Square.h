@@ -26,6 +26,7 @@ public:
            float uMin = 0.f , float uMax = 1.f , float vMin = 0.f , float vMax = 1.f) : Mesh() {
         setQuad(bottomLeft, rightVector, upVector, width, height, uMin, uMax, vMin, vMax);
     }
+    ~Square() = default;
 
     void setQuad( Vec3 const & bottomLeft , Vec3 const & rightVector , Vec3 const & upVector , float width=1. , float height=1. ,
                   float uMin = 0.f , float uMax = 1.f , float vMin = 0.f , float vMax = 1.f) {

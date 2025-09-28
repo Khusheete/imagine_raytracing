@@ -23,18 +23,15 @@
 #include <cstdlib>
 
 #include <algorithm>
-#include "src/Vec3.h"
-#include "src/Camera.h"
-#include "src/Scene.h"
+#include "Vec3.h"
+#include "Camera.h"
+#include "Scene.h"
 #include <GL/glut.h>
 
-#include "src/matrixUtilities.h"
+#include "matrixUtilities.h"
 
-using namespace std;
-
-#include "src/imageLoader.h"
-
-#include "src/Material.h"
+// #include "imageLoader.h"
+// #include "Material.h"
 
 
 // -------------------------------------------
@@ -58,21 +55,21 @@ unsigned int selected_scene;
 std::vector< std::pair< Vec3 , Vec3 > > rays;
 
 void printUsage () {
-    cerr << endl
-         << "gMini: a minimal OpenGL/GLUT application" << endl
-         << "for 3D graphics." << endl
-         << "Author : Tamy Boubekeur (http://www.labri.fr/~boubek)" << endl << endl
-         << "Usage : ./gmini [<file.off>]" << endl
-         << "Keyboard commands" << endl
-         << "------------------" << endl
-         << " ?: Print help" << endl
-         << " w: Toggle Wireframe Mode" << endl
-         << " g: Toggle Gouraud Shading Mode" << endl
-         << " f: Toggle full screen mode" << endl
-         << " <drag>+<left button>: rotate model" << endl
-         << " <drag>+<right button>: move model" << endl
-         << " <drag>+<middle button>: zoom" << endl
-         << " q, <esc>: Quit" << endl << endl;
+    std::cerr << std::endl
+         << "gMini: a minimal OpenGL/GLUT application" << std::endl
+         << "for 3D graphics." << std::endl
+         << "Author : Tamy Boubekeur (http://www.labri.fr/~boubek)" << std::endl << std::endl
+         << "Usage : ./gmini [<file.off>]" << std::endl
+         << "Keyboard commands" << std::endl
+         << "------------------" << std::endl
+         << " ?: Print help" << std::endl
+         << " w: Toggle Wireframe Mode" << std::endl
+         << " g: Toggle Gouraud Shading Mode" << std::endl
+         << " f: Toggle full screen mode" << std::endl
+         << " <drag>+<left button>: rotate model" << std::endl
+         << " <drag>+<right button>: move model" << std::endl
+         << " <drag>+<middle button>: zoom" << std::endl
+         << " q, <esc>: Quit" << std::endl << std::endl;
 }
 
 void usage () {
@@ -190,9 +187,9 @@ void ray_trace_from_camera() {
     std::cout << "\tDone" << std::endl;
 
     std::string filename = "./rendu.ppm";
-    ofstream f(filename.c_str(), ios::binary);
+    std::ofstream f(filename.c_str(), std::ios::binary);
     if (f.fail()) {
-        cout << "Could not open file: " << filename << endl;
+        std::cout << "Could not open file: " << filename << std::endl;
         return;
     }
     f << "P3" << std::endl << w << " " << h << std::endl << 255 << std::endl;
@@ -203,7 +200,7 @@ void ray_trace_from_camera() {
 }
 
 
-void key (unsigned char keyPressed, int x, int y) {
+void key (unsigned char keyPressed, [[maybe_unused]] int x, [[maybe_unused]] int y) {
     Vec3 pos , dir;
     switch (keyPressed) {
     case 'f':

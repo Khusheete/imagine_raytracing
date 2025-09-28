@@ -2,6 +2,7 @@
 #define matrixUtilities_H
 
 #include "Vec3.h"
+#include <GL/gl.h>
 
 template< class T >
 bool gluInvertMatrix(const T m[16], T invOut[16])

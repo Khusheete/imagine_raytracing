@@ -40,6 +40,7 @@ public:
 
     Sphere() : Mesh() {}
     Sphere(Vec3 c , float r) : Mesh() , m_center(c) , m_radius(r) {}
+    ~Sphere() = default;
 
     void build_arrays(){
         unsigned int nTheta = 20 , nPhi = 20;

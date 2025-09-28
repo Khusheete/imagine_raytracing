@@ -2,7 +2,7 @@
 #define TRIANGLE_H
 #include "Vec3.h"
 #include "Ray.h"
-#include "Plane.h"
+// #include "Plane.h"
 
 struct RayTriangleIntersection{
     bool intersectionExists;
@@ -35,33 +35,33 @@ public:
     void setC1( Vec3 const & c1 ) { m_c[1] = c1; } // remember to update the area and normal afterwards!
     void setC2( Vec3 const & c2 ) { m_c[2] = c2; } // remember to update the area and normal afterwards!
     Vec3 const & normal() const { return m_normal; }
-    Vec3 projectOnSupportPlane( Vec3 const & p ) const {
+    Vec3 projectOnSupportPlane([[maybe_unused]] Vec3 const & p ) const {
         Vec3 result;
         //TODO completer
         return result;
     }
-    float squareDistanceToSupportPlane( Vec3 const & p ) const {
-        float result;
+    float squareDistanceToSupportPlane([[maybe_unused]] Vec3 const & p ) const {
+        float result = 0.0f;
         //TODO completer
         return result;
     }
     float distanceToSupportPlane( Vec3 const & p ) const { return sqrt( squareDistanceToSupportPlane(p) ); }
-    bool isParallelTo( Line const & L ) const {
-        bool result;
+    bool isParallelTo([[maybe_unused]] Line const & L ) const {
+        bool result = false;
         //TODO completer
         return result;
     }
-    Vec3 getIntersectionPointWithSupportPlane( Line const & L ) const {
+    Vec3 getIntersectionPointWithSupportPlane([[maybe_unused]] Line const & L ) const {
         // you should check first that the line is not parallel to the plane!
         Vec3 result;
         //TODO completer
         return result;
     }
-    void computeBarycentricCoordinates( Vec3 const & p , float & u0 , float & u1 , float & u2 ) const {
+    void computeBarycentricCoordinates([[maybe_unused]] Vec3 const & p ,[[maybe_unused]] float & u0 ,[[maybe_unused]] float & u1 ,[[maybe_unused]] float & u2 ) const {
         //TODO Complete
     }
 
-    RayTriangleIntersection getIntersection( Ray const & ray ) const {
+    RayTriangleIntersection getIntersection([[maybe_unused]] Ray const & ray ) const {
         RayTriangleIntersection result;
         // 1) check that the ray is not parallel to the triangle:
 

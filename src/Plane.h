@@ -15,19 +15,19 @@ public:
     void setNormal( Vec3 const & n ) { m_normal = n; m_normal.normalize(); }
     Vec3 const & center() const { return m_center; }
     Vec3 const & normal() const { return m_normal; }
-    Vec3 project( Vec3 const & p ) const {
+    Vec3 project([[maybe_unused]] Vec3 const & p ) const {
         Vec3 result;
         //TODO completer
         return result;
     }
     float squareDistance( Vec3 const & p ) const { return (project(p) - p).squareLength(); }
     float distance( Vec3 const & p ) const { return sqrt( squareDistance(p) ); }
-    bool isParallelTo( Line const & L ) const {
-        bool result;
+    bool isParallelTo([[maybe_unused]] Line const & L ) const {
+        bool result = false;
         //TODO completer
         return result;
     }
-    Vec3 getIntersectionPoint( Line const & L ) const {
+    Vec3 getIntersectionPoint([[maybe_unused]] Line const & L ) const {
         // you should check first that the line is not parallel to the plane!
         Vec3 result;
         //TODO completer

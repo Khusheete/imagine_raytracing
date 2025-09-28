@@ -18,16 +18,19 @@ public:
     Vec3 const & origin() const { return m_origin; }
     Vec3 & direction() { return m_direction; }
     Vec3 const & direction() const { return m_direction; }
-    Vec3 project( Vec3 const & p ) const {
+
+    Vec3 project([[maybe_unused]] Vec3 const & p ) const {
         Vec3 result;
         //TODO completer
         return result;
     }
-    float squareDistance( Vec3 const & p ) const {
-        float result;
+
+    float squareDistance([[maybe_unused]] Vec3 const & p ) const {
+        float result = 0.0;
         //TODO completer
         return result;
     }
+
     float distance( Vec3 const & p ) const {
         return sqrt( squareDistance(p) );
     }
