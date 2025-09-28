@@ -23,9 +23,8 @@
 #include <cstdlib>
 
 #include <algorithm>
-#include "Vec3.h"
 #include "Camera.h"
-#include "Scene.h"
+#include "scene.h"
 #include <GL/glut.h>
 
 #include "matrixUtilities.h"
@@ -167,21 +166,22 @@ void ray_trace_from_camera() {
     int w = glutGet(GLUT_WINDOW_WIDTH)  ,   h = glutGet(GLUT_WINDOW_HEIGHT);
     std::cout << "Ray tracing a " << w << " x " << h << " image" << std::endl;
     camera.apply();
-    Vec3 pos , dir;
+    kmath::Vec3 pos, dir;
     //    unsigned int nsamples = 100;
-    unsigned int nsamples = 50;
-    std::vector< Vec3 > image( w*h , Vec3(0,0,0) );
-    for (int y=0; y<h; y++){
-        for (int x=0; x<w; x++) {
-            for( unsigned int s = 0 ; s < nsamples ; ++s ) {
+    unsigned int sample_count = 50;
+    std::vector<kmath::Vec3> image(w*h , kmath::Vec3::ZERO);
+
+    for (int y = 0; y < h; y++){
+        for (int x = 0; x < w; x++) {
+            for(unsigned int s = 0 ; s < sample_count ; ++s) {
                 float u = ((float)(x) + (float)(rand())/(float)(RAND_MAX)) / w;
                 float v = ((float)(y) + (float)(rand())/(float)(RAND_MAX)) / h;
                 // this is a random uv that belongs to the pixel xy.
-                screen_space_to_world_space_ray(u,v,pos,dir);
-                Vec3 color = scenes[selected_scene].rayTrace( Ray(pos , dir) );
+                screen_space_to_world_space_ray(u, v, reinterpret_cast<Vec3&>(pos), reinterpret_cast<Vec3&>(dir));
+                kmath::Vec3 color = scenes[selected_scene].rayTrace( Ray(pos , dir) );
                 image[x + y*w] += color;
             }
-            image[x + y*w] /= nsamples;
+            image[x + y*w] /= static_cast<float>(sample_count);
         }
     }
     std::cout << "\tDone" << std::endl;
@@ -194,7 +194,7 @@ void ray_trace_from_camera() {
     }
     f << "P3" << std::endl << w << " " << h << std::endl << 255 << std::endl;
     for (int i=0; i<w*h; i++)
-        f << (int)(255.f*std::min<float>(1.f,image[i][0])) << " " << (int)(255.f*std::min<float>(1.f,image[i][1])) << " " << (int)(255.f*std::min<float>(1.f,image[i][2])) << " ";
+        f << (int)(255.f*std::min<float>(1.f,image[i].x)) << " " << (int)(255.f*std::min<float>(1.f,image[i].y)) << " " << (int)(255.f*std::min<float>(1.f,image[i].z)) << " ";
     f << std::endl;
     f.close();
 }

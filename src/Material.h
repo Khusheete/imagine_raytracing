@@ -1,8 +1,8 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include "imageLoader.h"
-#include "Vec3.h"
+#include "kmath/vector.hpp"
+
 #include <cmath>
 
 #include <GL/glut.h>
@@ -15,9 +15,9 @@ enum MaterialType {
 
 
 struct Material {
-    Vec3 ambient_material;
-    Vec3 diffuse_material;
-    Vec3 specular_material;
+    kmath::Vec3 ambient_material;
+    kmath::Vec3 diffuse_material;
+    kmath::Vec3 specular_material;
     double shininess;
 
     float index_medium;
@@ -29,7 +29,7 @@ struct Material {
         type = Material_Diffuse_Blinn_Phong;
         transparency = 0.0;
         index_medium = 1.0;
-        ambient_material = Vec3(0., 0., 0.);
+        ambient_material = kmath::Vec3(0., 0., 0.);
     }
 };
 

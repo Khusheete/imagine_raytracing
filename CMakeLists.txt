@@ -50,8 +50,11 @@ add_executable(raytracing
   src/main.cpp
   src/imageLoader.cpp
   src/Camera.cpp
-  src/Mesh.cpp
   src/Trackball.cpp
+
+  src/geometry/ray.cpp
+  src/geometry/plane.cpp
+  src/geometry/mesh.cpp
 )
 
 target_include_directories(raytracing PRIVATE
