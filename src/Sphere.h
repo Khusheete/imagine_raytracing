@@ -5,26 +5,16 @@
 #include "Mesh.h"
 #include <cmath>
 
-struct RaySphereIntersection{
-    bool intersectionExists;
-    float t;
-    float theta,phi;
-    Vec3 intersection;
-    Vec3 secondintersection;
-    Vec3 normal;
-};
 
-static
-Vec3 SphericalCoordinatesToEuclidean( Vec3 ThetaPhiR ) {
+static Vec3 SphericalCoordinatesToEuclidean( Vec3 ThetaPhiR ) {
     return ThetaPhiR[2] * Vec3( cos(ThetaPhiR[0]) * cos(ThetaPhiR[1]) , sin(ThetaPhiR[0]) * cos(ThetaPhiR[1]) , sin(ThetaPhiR[1]) );
 }
-static
-Vec3 SphericalCoordinatesToEuclidean( float theta , float phi ) {
+
+static Vec3 SphericalCoordinatesToEuclidean( float theta , float phi ) {
     return Vec3( cos(theta) * cos(phi) , sin(theta) * cos(phi) , sin(phi) );
 }
 
-static
-Vec3 EuclideanCoordinatesToSpherical( Vec3 xyz ) {
+static Vec3 EuclideanCoordinatesToSpherical( Vec3 xyz ) {
     float R = xyz.length();
     float phi = asin( xyz[2] / R );
     float theta = atan2( xyz[1] , xyz[0] );
@@ -83,9 +73,39 @@ public:
     }
 
 
-    RaySphereIntersection intersect(const Ray &ray) const {
-        RaySphereIntersection intersection;
-        //TODO calcul l'intersection rayon sphere
+    RayHit intersect(const Ray &ray) const {
+        RayHit intersection;
+        const Vec3 alpha = m_center - ray.origin();
+        const float a = ray.direction().squareLength();
+        const float b = 2.0f * Vec3::dot(alpha, ray.direction());
+        const float c = alpha.squareLength() - m_radius * m_radius;
+        const float delta = b * b - 4.0f * a * c;
+
+        if (delta < 0) { // The sphere is not hit
+            intersection.hit = false;
+            return intersection;
+        }
+
+        const float sqrt_delta = std::sqrt(delta);
+        const float x1a = b - sqrt_delta;
+
+        float dist = 0.0f;
+
+        if (x1a < 0.0) { // The collision is behind the ray, either we're in the sphere, or the sphere's behind us
+            const float x2a = b + sqrt_delta;
+            if (x2a < 0.0) return intersection; // The sphere is behind the ray, no hit
+            dist = 0.5f * x2a / a;
+        } else {
+            dist = 0.5f * x1a / a;
+        }
+
+        Vec3 pos = ray.origin() + dist * ray.direction();
+        intersection.distance = dist;
+        intersection.position = pos;
+        intersection.normal = pos - m_center;
+        intersection.normal.normalize();
+        
+        intersection.hit = true;
         return intersection;
     }
 };

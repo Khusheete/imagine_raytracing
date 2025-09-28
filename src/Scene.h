@@ -1,6 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include <limits>
 #include <vector>
 #include "Mesh.h"
 #include "Sphere.h"
@@ -38,7 +39,7 @@ struct RaySceneIntersection{
     unsigned int objectIndex;
     float t;
     RayTriangleIntersection rayMeshIntersection;
-    RaySphereIntersection raySphereIntersection;
+    RayHit raySphereIntersection;
     RaySquareIntersection raySquareIntersection;
     RaySceneIntersection() : intersectionExists(false) , t(FLT_MAX) {}
 };
@@ -95,9 +96,20 @@ public:
 
 
     Vec3 rayTrace([[maybe_unused]] Ray const & rayStart ) {
-        //TODO appeler la fonction recursive
-        Vec3 color;
-        return color;
+        float min_distance = std::numeric_limits<float>::infinity();
+        Sphere *closest = nullptr;
+        for (Sphere &sphere : spheres) {
+            RayHit inter = sphere.intersect(rayStart);
+            if (inter.hit && inter.distance < min_distance) {
+                min_distance = inter.distance;
+                closest = &sphere;
+            }
+        }
+
+        if (closest != nullptr) {
+            return closest->material.diffuse_material;
+        }
+        return Vec3(0.0, 0.0, 0.0);
     }
 
     void setup_single_sphere() {
