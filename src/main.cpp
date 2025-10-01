@@ -54,7 +54,7 @@ unsigned int selected_scene;
 
 std::vector<std::pair<kmath::Vec3, kmath::Vec3>> rays;
 
-void printUsage () {
+void printUsage() {
     std::cerr << std::endl
          << "gMini: a minimal OpenGL/GLUT application" << std::endl
          << "for 3D graphics." << std::endl
@@ -72,34 +72,34 @@ void printUsage () {
          << " q, <esc>: Quit" << std::endl << std::endl;
 }
 
-void usage () {
-    printUsage ();
-    exit (EXIT_FAILURE);
+void usage() {
+    printUsage();
+    exit(EXIT_FAILURE);
 }
 
 
 // ------------------------------------
-void initLight () {
+void initLight() {
     GLfloat light_position[4] = {0.0, 1.5, 0.0, 1.0};
     GLfloat color[4] = { 1.0, 1.0, 1.0, 1.0};
     GLfloat ambient[4] = { 1.0, 1.0, 1.0, 1.0};
 
-    glLightfv (GL_LIGHT1, GL_POSITION, light_position);
-    glLightfv (GL_LIGHT1, GL_DIFFUSE, color);
-    glLightfv (GL_LIGHT1, GL_SPECULAR, color);
-    glLightModelfv (GL_LIGHT_MODEL_AMBIENT, ambient);
-    glEnable (GL_LIGHT1);
-    glEnable (GL_LIGHTING);
+    glLightfv(GL_LIGHT1, GL_POSITION, light_position);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, color);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, color);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHTING);
 }
 
-void init () {
-    camera.resize (SCREENWIDTH, SCREENHEIGHT);
-    initLight ();
-    //glCullFace (GL_BACK);
-    glDisable (GL_CULL_FACE);
-    glDepthFunc (GL_LESS);
-    glEnable (GL_DEPTH_TEST);
-    glClearColor (0.2f, 0.2f, 0.3f, 1.0f);
+void init() {
+    camera.resize(SCREENWIDTH, SCREENHEIGHT);
+    initLight();
+    //glCullFace(GL_BACK);
+    glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_DEPTH_TEST);
+    glClearColor(0.2f, 0.2f, 0.3f, 1.0f);
 }
 
 
@@ -109,7 +109,7 @@ void init () {
 // closing sockets, etc.
 // ------------------------------------
 
-void clear () {
+void clear() {
 
 }
 
@@ -119,7 +119,7 @@ void clear () {
 // ------------------------------------
 
 
-void draw () {
+void draw() {
     glEnable(GL_LIGHTING);
     scenes[selected_scene].draw();
 
@@ -137,29 +137,29 @@ void draw () {
     glEnd();
 }
 
-void display () {
-    glLoadIdentity ();
-    glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    camera.apply ();
-    draw ();
-    glFlush ();
-    glutSwapBuffers ();
+void display() {
+    glLoadIdentity();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    camera.apply();
+    draw();
+    glFlush();
+    glutSwapBuffers();
 }
 
-void idle () {
-    static float lastTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
+void idle() {
+    static float lastTime = glutGet((GLenum)GLUT_ELAPSED_TIME);
     static unsigned int counter = 0;
     counter++;
-    float currentTime = glutGet ((GLenum)GLUT_ELAPSED_TIME);
+    float currentTime = glutGet((GLenum)GLUT_ELAPSED_TIME);
     if (currentTime - lastTime >= 1000.0f) {
         FPS = counter;
         counter = 0;
         static char winTitle [64];
-        sprintf (winTitle, "Raytracer - FPS: %d", FPS);
-        glutSetWindowTitle (winTitle);
+        sprintf(winTitle, "Raytracer - FPS: %d", FPS);
+        glutSetWindowTitle(winTitle);
         lastTime = currentTime;
     }
-    glutPostRedisplay ();
+    glutPostRedisplay();
 }
 
 
@@ -210,30 +210,30 @@ void ray_trace_from_camera() {
 }
 
 
-void key (unsigned char keyPressed, [[maybe_unused]] int x, [[maybe_unused]] int y) {
+void key(unsigned char keyPressed, [[maybe_unused]] int x, [[maybe_unused]] int y) {
     kmath::Vec3 pos, dir;
     switch (keyPressed) {
     case 'f':
         if (fullScreen == true) {
-            glutReshapeWindow (SCREENWIDTH, SCREENHEIGHT);
+            glutReshapeWindow(SCREENWIDTH, SCREENHEIGHT);
             fullScreen = false;
         } else {
-            glutFullScreen ();
+            glutFullScreen();
             fullScreen = true;
         }
         break;
     case 'q':
     case 27:
-        clear ();
-        exit (0);
+        clear();
+        exit(0);
         break;
     case 'w':
         GLint polygonMode[2];
         glGetIntegerv(GL_POLYGON_MODE, polygonMode);
         if(polygonMode[0] != GL_FILL)
-            glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         else
-            glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         break;
 
     case 'r':
@@ -246,20 +246,20 @@ void key (unsigned char keyPressed, [[maybe_unused]] int x, [[maybe_unused]] int
         if( selected_scene >= scenes.size() ) selected_scene = 0;
         break;
     default:
-        printUsage ();
+        printUsage();
         break;
     }
-    idle ();
+    idle();
 }
 
-void mouse (int button, int state, int x, int y) {
+void mouse(int button, int state, int x, int y) {
     if (state == GLUT_UP) {
         mouseMovePressed = false;
         mouseRotatePressed = false;
         mouseZoomPressed = false;
     } else {
         if (button == GLUT_LEFT_BUTTON) {
-            camera.beginRotate (x, y);
+            camera.beginRotate(x, y);
             mouseMovePressed = false;
             mouseRotatePressed = true;
             mouseZoomPressed = false;
@@ -278,48 +278,48 @@ void mouse (int button, int state, int x, int y) {
             }
         }
     }
-    idle ();
+    idle();
 }
 
-void motion (int x, int y) {
+void motion(int x, int y) {
     if (mouseRotatePressed == true) {
-        camera.rotate (x, y);
+        camera.rotate(x, y);
     }
     else if (mouseMovePressed == true) {
-        camera.move ((x-lastX)/static_cast<float>(SCREENWIDTH), (lastY-y)/static_cast<float>(SCREENHEIGHT), 0.0);
+        camera.move((x-lastX)/static_cast<float>(SCREENWIDTH),(lastY-y)/static_cast<float>(SCREENHEIGHT), 0.0);
         lastX = x;
         lastY = y;
     }
     else if (mouseZoomPressed == true) {
-        camera.zoom (float (y-lastZoom)/SCREENHEIGHT);
+        camera.zoom(float(y-lastZoom)/SCREENHEIGHT);
         lastZoom = y;
     }
 }
 
 
 void reshape(int w, int h) {
-    camera.resize (w, h);
+    camera.resize(w, h);
 }
 
 
 int main(int argc, char ** argv) {
     if (argc > 2) {
-        printUsage ();
-        exit (EXIT_FAILURE);
+        printUsage();
+        exit(EXIT_FAILURE);
     }
-    glutInit (&argc, argv);
-    glutInitDisplayMode (GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-    glutInitWindowSize (SCREENWIDTH, SCREENHEIGHT);
-    window = glutCreateWindow ("gMini");
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
+    glutInitWindowSize(SCREENWIDTH, SCREENHEIGHT);
+    window = glutCreateWindow("gMini");
 
-    init ();
-    glutIdleFunc (idle);
-    glutDisplayFunc (display);
-    glutKeyboardFunc (key);
-    glutReshapeFunc (reshape);
-    glutMotionFunc (motion);
-    glutMouseFunc (mouse);
-    key ('?', 0, 0);
+    init();
+    glutIdleFunc(idle);
+    glutDisplayFunc(display);
+    glutKeyboardFunc(key);
+    glutReshapeFunc(reshape);
+    glutMotionFunc(motion);
+    glutMouseFunc(mouse);
+    key('?', 0, 0);
 
 
     camera.move(0., 0., -3.1);
@@ -329,7 +329,7 @@ int main(int argc, char ** argv) {
     scenes[1].setup_single_square();
     scenes[2].setup_cornell_box();
 
-    glutMainLoop ();
+    glutMainLoop();
     return EXIT_SUCCESS;
 }
 

@@ -21,7 +21,7 @@ static float _x, _y, _z;
 static float __zoom;
 static bool ini = false;
 
-Camera::Camera () {
+Camera::Camera() {
   fovAngle = 45.0;
   aspectRatio = 1.0;
   nearPlane = 4.1;
@@ -32,25 +32,25 @@ Camera::Camera () {
   beginu = 0;
   beginv = 0;
   
-  trackball (curquat, 0.0, 0.0, 0.0, 0.0);
+  trackball(curquat, 0.0, 0.0, 0.0, 0.0);
   x = y = z = 0.0;
   _zoom = 3.0;
 }
 
 
-void Camera::resize (int _W, int _H) {
+void Camera::resize(int _W, int _H) {
   H = _H;
   W = _W;
-  glViewport (0, 0, (GLint)W, (GLint)H);
-  glMatrixMode (GL_PROJECTION);
-  glLoadIdentity ();
+  glViewport(0, 0,(GLint)W,(GLint)H);
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
   aspectRatio = static_cast<float>(W)/static_cast<float>(H);
-  gluPerspective (fovAngle, aspectRatio, nearPlane, farPlane);
-  glMatrixMode (GL_MODELVIEW);
+  gluPerspective(fovAngle, aspectRatio, nearPlane, farPlane);
+  glMatrixMode(GL_MODELVIEW);
 }
 
 
-void Camera::initPos () {
+void Camera::initPos() {
   if (!ini) {
   _spinning = spinning;
   _moving = moving;;
@@ -82,14 +82,14 @@ void Camera::initPos () {
 }
 
 
-void Camera::move (float dx, float dy, float dz) {
+void Camera::move(float dx, float dy, float dz) {
   x += dx;
   y += dy;
   z += dz;
 }
 
 
-void Camera::beginRotate (int u, int v) {
+void Camera::beginRotate(int u, int v) {
   beginu = u; 
   beginv = v;
   moving = 1;
@@ -97,7 +97,7 @@ void Camera::beginRotate (int u, int v) {
 }
 
 
-void Camera::rotate (int u, int v) {
+void Camera::rotate(int u, int v) {
   if (moving) {
     trackball(lastquat,
 	      (2.0 * beginu - W) / W,
@@ -107,32 +107,32 @@ void Camera::rotate (int u, int v) {
     beginu = u;
     beginv = v;
     spinning = 1;
-    add_quats (lastquat, curquat, curquat);
+    add_quats(lastquat, curquat, curquat);
   }
 }
 
 
-void Camera::endRotate () {
+void Camera::endRotate() {
   moving = false;
 }
 
 
-void Camera::zoom (float z) {
+void Camera::zoom(float z) {
   _zoom += z;
 }
 
 
-void Camera::apply () {
+void Camera::apply() {
   glLoadIdentity();
-  glTranslatef (x, y, z);
+  glTranslatef(x, y, z);
   GLfloat m[4][4]; 
   build_rotmatrix(m, curquat);
-  glTranslatef (0.0, 0.0, -_zoom);
+  glTranslatef(0.0, 0.0, -_zoom);
   glMultMatrixf(&m[0][0]);
 }
 
 
-void Camera::getPos (float & X, float & Y, float & Z) {
+void Camera::getPos(float & X, float & Y, float & Z) {
   GLfloat m[4][4]; 
   build_rotmatrix(m, curquat);
   float _x = -x;
