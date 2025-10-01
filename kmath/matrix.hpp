@@ -22,6 +22,7 @@
 #pragma once
 
 
+#include "utils.hpp"
 #include "vector.hpp"
 
 
@@ -66,10 +67,14 @@ namespace kmath {
         _Vec2<T>(-sin, cos)
       );
     }
-    
+
+  public:
+    inline T &operator()(const size_t i, const size_t j) { return reinterpret_cast<T*>(this)[2 * i + j]; }
+    inline const T &operator()(const size_t i, const size_t j) const { return reinterpret_cast<const T*>(this)[2 * i + j]; }
 
   public:
     static const _Mat2<T> IDENTITY;
+    static const _Mat2<T> ZERO;
   };
 
 
@@ -78,6 +83,19 @@ namespace kmath {
     _Vec2<T>((T)1.0, (T)0.0),
     _Vec2<T>((T)0.0, (T)1.0)
   );
+
+
+  template<Number T>
+  const _Mat2<T> _Mat2<T>::ZERO = _Mat2<T>(
+    _Vec2<T>::ZERO,
+    _Vec2<T>::ZERO
+  );
+
+
+  template<Number T>
+  inline bool is_approx_zero(const _Mat2<T> &a) {
+    return is_approx_zero(a.x) && is_approx_zero(a.y);
+  }
 
 
   template<Number T>
@@ -119,6 +137,78 @@ namespace kmath {
   template<Number T>
   inline _Mat2<T> &operator*=(_Mat2<T> &a, const _Mat2<T> &b) {
     a = a * b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> operator+(const _Mat2<T> &a, const _Mat2<T> &b) {
+    return _Mat2(
+      a.x + b.x,
+      a.y + b.y,
+      a.z + b.z,
+      a.w + b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> &operator+=(_Mat2<T> &a, const _Mat2<T> &b) {
+    a = a + b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> operator-(const _Mat2<T> &a, const _Mat2<T> &b) {
+    return _Mat2(
+      a.x - b.x,
+      a.y - b.y,
+      a.z - b.z,
+      a.w - b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> &operator-=(_Mat2<T> &a, const _Mat2<T> &b) {
+    a = a - b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> operator*(const _Mat2<T> &a, const T b) {
+    return b * a;
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> operator*(const T a, const _Mat2<T> &b) {
+    return _Mat2<T>(
+      a * b.x,
+      a * b.y
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> &operator*=(_Mat2<T> &a, const T b) {
+    a = b * a;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> operator/(const _Mat2<T> &a, const T b) {
+    const T scale = (T)1.0 / b;
+    return scale * a;
+  }
+
+
+  template<Number T>
+  inline _Mat2<T> &operator/=(_Mat2<T> &a, const T b) {
+    a = a / b;
     return a;
   }
 
@@ -187,10 +277,14 @@ namespace kmath {
         _Vec3<T>((T)0.0, (T)0.0, (T)1.0)
       );
     }
-    
+
+  public:
+    inline T &operator()(const size_t i, const size_t j) { return reinterpret_cast<T*>(this)[3 * i + j]; }
+    inline const T &operator()(const size_t i, const size_t j) const { return reinterpret_cast<const T*>(this)[3 * i + j]; }
 
   public:
     static const _Mat3<T> IDENTITY;
+    static const _Mat3<T> ZERO;
   };
 
 
@@ -200,6 +294,20 @@ namespace kmath {
     _Vec3<T>((T)0.0, (T)1.0, (T)0.0),
     _Vec3<T>((T)0.0, (T)0.0, (T)1.0)
   );
+
+
+  template<Number T>
+  const _Mat3<T> _Mat3<T>::ZERO = _Mat3<T>(
+    _Vec3<T>::ZERO,
+    _Vec3<T>::ZERO,
+    _Vec3<T>::ZERO
+  );
+
+
+  template<Number T>
+  inline bool is_approx_zero(const _Mat3<T> &a) {
+    return is_approx_zero(a.x) && is_approx_zero(a.y) && is_approx_zero(a.z);
+  }
 
 
   template<Number T>
@@ -263,6 +371,79 @@ namespace kmath {
   template<Number T>
   inline _Mat3<T> &operator*=(_Mat3<T> &a, const _Mat3<T> &b) {
     a = a * b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> operator+(const _Mat3<T> &a, const _Mat3<T> &b) {
+    return _Mat3(
+      a.x + b.x,
+      a.y + b.y,
+      a.z + b.z,
+      a.w + b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> &operator+=(_Mat3<T> &a, const _Mat3<T> &b) {
+    a = a + b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> operator-(const _Mat3<T> &a, const _Mat3<T> &b) {
+    return _Mat3(
+      a.x - b.x,
+      a.y - b.y,
+      a.z - b.z,
+      a.w - b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> &operator-=(_Mat3<T> &a, const _Mat3<T> &b) {
+    a = a - b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> operator*(const _Mat3<T> &a, const T b) {
+    return b * a;
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> operator*(const T a, const _Mat3<T> &b) {
+    return _Mat3<T>(
+      a * b.x,
+      a * b.y,
+      a * b.z
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> &operator*=(_Mat3<T> &a, const T b) {
+    a = b * a;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> operator/(const _Mat3<T> &a, const T b) {
+    const T scale = (T)1.0 / b;
+    return scale * a;
+  }
+
+
+  template<Number T>
+  inline _Mat3<T> &operator/=(_Mat3<T> &a, const T b) {
+    a = a / b;
     return a;
   }
 
@@ -512,7 +693,12 @@ namespace kmath {
     }
 
   public:
+    inline T &operator()(const size_t i, const size_t j) { return reinterpret_cast<T*>(this)[4 * i + j]; }
+    inline const T &operator()(const size_t i, const size_t j) const { return reinterpret_cast<const T*>(this)[4 * i + j]; }
+
+  public:
     static const _Mat4<T> IDENTITY;
+    static const _Mat4<T> ZERO;
   };
 
 
@@ -524,6 +710,21 @@ namespace kmath {
     _Vec4<T>((T)0.0, (T)0.0, (T)0.0, (T)1.0)
   );
 
+
+  template<Number T>
+  const _Mat4<T> _Mat4<T>::ZERO = _Mat4<T>(
+    _Vec4<T>::ZERO,
+    _Vec4<T>::ZERO,
+    _Vec4<T>::ZERO,
+    _Vec4<T>::ZERO
+  );
+
+
+  template<Number T>
+  inline bool is_approx_zero(const _Mat4<T> &a) {
+    return is_approx_zero(a.x) && is_approx_zero(a.y) && is_approx_zero(a.z) && is_approx_zero(a.w);
+  }
+  
 
   template<Number T>
   inline _Mat4<T> transpose(const _Mat4<T> &m) {
@@ -573,6 +774,243 @@ namespace kmath {
   inline _Mat4<T> &operator*=(_Mat4<T> &a, const _Mat4<T> &b) {
     a = a * b;
     return a;
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> operator+(const _Mat4<T> &a, const _Mat4<T> &b) {
+    return _Mat4(
+      a.x + b.x,
+      a.y + b.y,
+      a.z + b.z,
+      a.w + b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> &operator+=(_Mat4<T> &a, const _Mat4<T> &b) {
+    a = a + b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> operator-(const _Mat4<T> &a, const _Mat4<T> &b) {
+    return _Mat4(
+      a.x - b.x,
+      a.y - b.y,
+      a.z - b.z,
+      a.w - b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> &operator-=(_Mat4<T> &a, const _Mat4<T> &b) {
+    a = a - b;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> operator*(const _Mat4<T> &a, const T b) {
+    return b * a;
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> operator*(const T a, const _Mat4<T> &b) {
+    return _Mat4<T>(
+      a * b.x,
+      a * b.y,
+      a * b.z,
+      a * b.w
+    );
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> &operator*=(_Mat4<T> &a, const T b) {
+    a = b * a;
+    return a;
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> operator/(const _Mat4<T> &a, const T b) {
+    const T scale = (T)1.0 / b;
+    return scale * a;
+  }
+
+
+  template<Number T>
+  inline _Mat4<T> &operator/=(_Mat4<T> &a, const T b) {
+    a = a / b;
+    return a;
+  }
+
+
+  template<Number T>
+  _Mat4<T> inverse(const _Mat4<T> &m) {
+    _Mat4<T> inv;
+
+    inv(0, 0) = (
+      + m(1, 1) * m(2, 2) * m(3, 3)
+      - m(1, 1) * m(2, 3) * m(3, 2)
+      - m(2, 1) * m(1, 2) * m(3, 3)
+      + m(2, 1) * m(1, 3) * m(3, 2)
+      + m(3, 1) * m(1, 2) * m(2, 3)
+      - m(3, 1) * m(1, 3) * m(2, 2)
+    );
+
+    inv(1, 0) = (
+      - m(1, 0) * m(2, 2) * m(3, 3)
+      + m(1, 0) * m(2, 3) * m(3, 2)
+      + m(2, 0) * m(1, 2) * m(3, 3)
+      - m(2, 0) * m(1, 3) * m(3, 2)
+      - m(3, 0) * m(1, 2) * m(2, 3)
+      + m(3, 0) * m(1, 3) * m(2, 2)
+    );
+
+    inv(2, 0) = (
+      + m(1, 0) * m(2, 1) * m(3, 3)
+      - m(1, 0) * m(2, 3) * m(3, 1)
+      - m(2, 0) * m(1, 1) * m(3, 3)
+      + m(2, 0) * m(1, 3) * m(3, 1)
+      + m(3, 0) * m(1, 1) * m(2, 3)
+      - m(3, 0) * m(1, 3) * m(2, 1)
+    );
+
+    inv(3, 0) = (
+      - m(1, 0) * m(2, 1) * m(3, 2)
+      + m(1, 0) * m(2, 2) * m(3, 1)
+      + m(2, 0) * m(1, 1) * m(3, 2)
+      - m(2, 0) * m(1, 2) * m(3, 1)
+      - m(3, 0) * m(1, 1) * m(2, 2)
+      + m(3, 0) * m(1, 2) * m(2, 1)
+    );
+
+    const T det = (
+      m(0, 0) * inv(0, 0)
+      + m(0, 1) * inv(1, 0)
+      + m(0, 2) * inv(2, 0)
+      + m(0, 3) * inv(3, 0)
+    );
+
+    if (det == (T)0.0) { // Test for equality since matrices that are almost non-invertible may have a det veeeery close to zero.
+      return _Mat4<T>::ZERO;
+    }
+
+    inv(0, 1) = (
+      - m(0, 1) * m(2, 2) * m(3, 3)
+      + m(0, 1) * m(2, 3) * m(3, 2)
+      + m(2, 1) * m(0, 2) * m(3, 3)
+      - m(2, 1) * m(0, 3) * m(3, 2)
+      - m(3, 1) * m(0, 2) * m(2, 3)
+      + m(3, 1) * m(0, 3) * m(2, 2)
+    );
+
+    inv(1, 1) = (
+      + m(0, 0) * m(2, 2) * m(3, 3)
+      - m(0, 0) * m(2, 3) * m(3, 2)
+      - m(2, 0) * m(0, 2) * m(3, 3)
+      + m(2, 0) * m(0, 3) * m(3, 2)
+      + m(3, 0) * m(0, 2) * m(2, 3)
+      - m(3, 0) * m(0, 3) * m(2, 2)
+    );
+
+    inv(2, 1) = (
+      - m(0, 0) * m(2, 1) * m(3, 3)
+      + m(0, 0) * m(2, 3) * m(3, 1)
+      + m(2, 0) * m(0, 1) * m(3, 3)
+      - m(2, 0) * m(0, 3) * m(3, 1)
+      - m(3, 0) * m(0, 1) * m(2, 3)
+      + m(3, 0) * m(0, 3) * m(2, 1)
+    );
+
+    inv(3, 1) = (
+      + m(0, 0) * m(2, 1) * m(3, 2)
+      - m(0, 0) * m(2, 2) * m(3, 1)
+      - m(2, 0) * m(0, 1) * m(3, 2)
+      + m(2, 0) * m(0, 2) * m(3, 1)
+      + m(3, 0) * m(0, 1) * m(2, 2)
+      - m(3, 0) * m(0, 2) * m(2, 1)
+    );
+
+    inv(0, 2) = (
+      + m(0, 1) * m(1, 2) * m(3, 3)
+      - m(0, 1) * m(1, 3) * m(3, 2)
+      - m(1, 1) * m(0, 2) * m(3, 3)
+      + m(1, 1) * m(0, 3) * m(3, 2)
+      + m(3, 1) * m(0, 2) * m(1, 3)
+      - m(3, 1) * m(0, 3) * m(1, 2)
+    );
+
+    inv(1, 2) = (
+      - m(0, 0) * m(1, 2) * m(3, 3)
+      + m(0, 0) * m(1, 3) * m(3, 2)
+      + m(1, 0) * m(0, 2) * m(3, 3)
+      - m(1, 0) * m(0, 3) * m(3, 2)
+      - m(3, 0) * m(0, 2) * m(1, 3)
+      + m(3, 0) * m(0, 3) * m(1, 2)
+    );
+
+    inv(2, 2) = (
+      + m(0, 0) * m(1, 1) * m(3, 3)
+      - m(0, 0) * m(1, 3) * m(3, 1)
+      - m(1, 0) * m(0, 1) * m(3, 3)
+      + m(1, 0) * m(0, 3) * m(3, 1)
+      + m(3, 0) * m(0, 1) * m(1, 3)
+      - m(3, 0) * m(0, 3) * m(1, 1)
+    );
+
+    inv(3, 2) = (
+      - m(0, 0) * m(1, 1) * m(3, 2)
+      + m(0, 0) * m(1, 2) * m(3, 1)
+      + m(1, 0) * m(0, 1) * m(3, 2)
+      - m(1, 0) * m(0, 2) * m(3, 1)
+      - m(3, 0) * m(0, 1) * m(1, 2)
+      + m(3, 0) * m(0, 2) * m(1, 1)
+    );
+
+    inv(0, 3) = (
+      - m(0, 1) * m(1, 2) * m(2, 3)
+      + m(0, 1) * m(1, 3) * m(2, 2)
+      + m(1, 1) * m(0, 2) * m(2, 3)
+      - m(1, 1) * m(0, 3) * m(2, 2)
+      - m(2, 1) * m(0, 2) * m(1, 3)
+      + m(2, 1) * m(0, 3) * m(1, 2)
+    );
+
+    inv(1, 3) = (
+      + m(0, 0) * m(1, 2) * m(2, 3)
+      - m(0, 0) * m(1, 3) * m(2, 2)
+      - m(1, 0) * m(0, 2) * m(2, 3)
+      + m(1, 0) * m(0, 3) * m(2, 2)
+      + m(2, 0) * m(0, 2) * m(1, 3)
+      - m(2, 0) * m(0, 3) * m(1, 2)
+    );
+
+    inv(2, 3) = (
+      - m(0, 0) * m(1, 1) * m(2, 3)
+      + m(0, 0) * m(1, 3) * m(2, 1)
+      + m(1, 0) * m(0, 1) * m(2, 3)
+      - m(2, 0) * m(0, 3) * m(2, 1)
+      - m(2, 0) * m(0, 1) * m(1, 3)
+      + m(3, 0) * m(0, 3) * m(1, 1)
+    );
+
+    inv(3, 3) = (
+      + m(0, 0) * m(1, 1) * m(2, 2)
+      - m(0, 0) * m(1, 2) * m(2, 1)
+      - m(1, 0) * m(0, 1) * m(2, 2)
+      + m(1, 0) * m(0, 2) * m(2, 1)
+      + m(2, 0) * m(0, 1) * m(1, 2)
+      - m(2, 0) * m(0, 2) * m(1, 1)
+    );
+
+    return inv / det;
   }
 
 

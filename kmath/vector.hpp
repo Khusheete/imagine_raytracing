@@ -41,7 +41,11 @@ namespace kmath {
   public:
     _Vec2(): _Vec2(ZERO) {}
     _Vec2(const T x, const T y): x(x), y(y) {}
-    
+
+  public:
+    inline T &operator[](const size_t index) { return reinterpret_cast<T*>(this)[index]; }
+    inline const T &operator[](const size_t index) const { return reinterpret_cast<const T*>(this)[index]; }
+
   public:
     static const _Vec2<T> ZERO;
     static const _Vec2<T> ONE;
@@ -102,7 +106,44 @@ namespace kmath {
   inline T dot(const _Vec2<T> &a, const _Vec2<T> &b) {
     return a.x * b.x + a.y * b.y;
   }
-  
+
+
+  // TOOD: FIXME
+  template<Number T>
+  inline _Vec2<T> apply(const _Vec2<T> &a, T (*op)(const T)) {
+    return _Vec2<T>(
+      op(a.x),
+      op(a.y)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec2<T> apply(const _Vec2<T> &a, const _Vec2<T> &b, T (*op)(const T, const T)) {
+    return _Vec2<T>(
+      op(a.x, b.x),
+      op(a.y, b.y)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec2<T> min(const _Vec2<T> &a, const _Vec2<T> &b) {
+    return _Vec2<T>(
+      std::min(a.x, b.x),
+      std::min(a.y, b.y)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec2<T> max(const _Vec2<T> &a, const _Vec2<T> &b) {
+    return _Vec2<T>(
+      std::max(a.x, b.x),
+      std::max(a.y, b.y)
+    );
+  }
+
 
   // =====================
   // = Vector2 Operators =
@@ -200,9 +241,8 @@ namespace kmath {
 
   template<Number T>
   inline _Vec2<T> &operator/=(_Vec2<T> &v, const T s) {
-    v.x /= s;
-    v.y /= s;
-    return v;
+    const T scale = (T)1.0 / s;
+    return v *= scale;
   }
 
 
@@ -220,7 +260,11 @@ namespace kmath {
     _Vec3(const T x, const T y, const T z): x(x), y(y), z(z) {}
     _Vec3(const _Vec2<T> &a, const T b): x(a.x), y(a.y), z(b) {}
     _Vec3(const T a, const _Vec2<T> &b): x(a), y(b.x), z(b.y) {}
-    
+
+  public:
+    inline T &operator[](const size_t index) { return reinterpret_cast<T*>(this)[index]; }
+    inline const T &operator[](const size_t index) const { return reinterpret_cast<const T*>(this)[index]; }
+
   public:
     static const _Vec3<T> ZERO;
     static const _Vec3<T> ONE;
@@ -292,6 +336,52 @@ namespace kmath {
       a.y * b.z - a.z * b.y,
       a.z * b.x - a.x * b.z,
       a.x * b.y - a.y * b.x    
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec2<T> homogeneous_projection(const _Vec3<T> &v) {
+    return _Vec2<T>(v.x, v.y, v.z) / v.w;
+  }
+
+
+  template<Number T>
+  inline _Vec3<T> apply(const _Vec3<T> &a, T (*op)(const T)) {
+    return _Vec3<T>(
+      op(a.x),
+      op(a.y),
+      op(a.z)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec3<T> apply(const _Vec3<T> &a, const _Vec3<T> &b, T (*op)(const T, const T)) {
+    return _Vec3<T>(
+      op(a.x, b.x),
+      op(a.y, b.y),
+      op(a.z, b.z)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec3<T> min(const _Vec3<T> &a, const _Vec3<T> &b) {
+    return _Vec3<T>(
+      std::min(a.x, b.x),
+      std::min(a.y, b.y),
+      std::min(a.z, b.z)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec3<T> max(const _Vec3<T> &a, const _Vec3<T> &b) {
+    return _Vec3<T>(
+      std::max(a.x, b.x),
+      std::max(a.y, b.y),
+      std::max(a.z, b.z)
     );
   }
   
@@ -397,10 +487,8 @@ namespace kmath {
 
   template<Number T>
   inline _Vec3<T> &operator/=(_Vec3<T> &v, const T s) {
-    v.x /= s;
-    v.y /= s;
-    v.z /= s;
-    return v;
+    const T scale = (T)1.0 / s;
+    return v *= scale;
   }
 
 
@@ -422,7 +510,11 @@ namespace kmath {
     _Vec4(const _Vec2<T> &a, const _Vec2<T> &b): x(a.x), y(a.y), z(b.x), w(b.y) {}
     _Vec4(const _Vec3<T> &a, const T b): x(a.x), y(a.y), z(a.z), w(b) {}
     _Vec4(const T a, const _Vec3<T> &b): x(a), y(b.x), z(b.y), w(b.z) {}
-    
+
+  public:
+    inline T &operator[](const size_t index) { return reinterpret_cast<T*>(this)[index]; }
+    inline const T &operator[](const size_t index) const { return reinterpret_cast<const T*>(this)[index]; }
+
   public:
     static const _Vec4<T> ZERO;
     static const _Vec4<T> ONE;
@@ -488,6 +580,56 @@ namespace kmath {
   template<Number T>
   inline T dot(const _Vec4<T> &a, const _Vec4<T> &b) {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+  }
+
+
+  template<Number T>
+  inline _Vec3<T> homogeneous_projection(const _Vec4<T> &v) {
+    return _Vec3<T>(v.x, v.y, v.z) / v.w;
+  }
+
+
+  template<Number T>
+  inline _Vec4<T> apply(const _Vec4<T> &a, T (*op)(const T)) {
+    return _Vec4<T>(
+      op(a.x),
+      op(a.y),
+      op(a.z),
+      op(a.w)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec4<T> apply(const _Vec4<T> &a, const _Vec4<T> &b, T (*op)(const T, const T)) {
+    return _Vec4<T>(
+      op(a.x, b.x),
+      op(a.y, b.y),
+      op(a.z, b.z),
+      op(a.w, b.w)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec4<T> min(const _Vec4<T> &a, const _Vec4<T> &b) {
+    return _Vec4<T>(
+      std::min(a.x, b.x),
+      std::min(a.y, b.y),
+      std::min(a.z, b.z),
+      std::min(a.w, b.w)
+    );
+  }
+
+
+  template<Number T>
+  inline _Vec4<T> max(const _Vec4<T> &a, const _Vec4<T> &b) {
+    return _Vec4<T>(
+      std::max(a.x, b.x),
+      std::max(a.y, b.y),
+      std::max(a.z, b.z),
+      std::max(a.w, b.w)
+    );
   }
   
 
@@ -597,11 +739,8 @@ namespace kmath {
 
   template<Number T>
   inline _Vec4<T> &operator/=(_Vec4<T> &v, const T s) {
-    v.x /= s;
-    v.y /= s;
-    v.z /= s;
-    v.w /= s;
-    return v;
+    const T scale = (T)1.0 / s;
+    return v *= scale;
   }
 
 
