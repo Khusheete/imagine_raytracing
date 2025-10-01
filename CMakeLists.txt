@@ -55,6 +55,8 @@ add_executable(raytracing
   src/geometry/ray.cpp
   src/geometry/plane.cpp
   src/geometry/mesh.cpp
+
+  src/utils/gl_utils.cpp
 )
 
 target_include_directories(raytracing PRIVATE

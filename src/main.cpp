@@ -24,10 +24,11 @@
 
 #include <algorithm>
 #include "Camera.h"
+#include "kmath/vector.hpp"
 #include "scene.h"
 #include <GL/glut.h>
 
-#include "matrixUtilities.h"
+#include "utils/gl_utils.hpp"
 
 // #include "imageLoader.h"
 // #include "Material.h"
@@ -51,7 +52,7 @@ static bool fullScreen = false;
 std::vector<Scene> scenes;
 unsigned int selected_scene;
 
-std::vector< std::pair< Vec3 , Vec3 > > rays;
+std::vector<std::pair<kmath::Vec3, kmath::Vec3>> rays;
 
 void printUsage () {
     std::cerr << std::endl
@@ -163,22 +164,31 @@ void idle () {
 
 
 void ray_trace_from_camera() {
+    using namespace kmath;
+    
     int w = glutGet(GLUT_WINDOW_WIDTH)  ,   h = glutGet(GLUT_WINDOW_HEIGHT);
     std::cout << "Ray tracing a " << w << " x " << h << " image" << std::endl;
     camera.apply();
-    kmath::Vec3 pos, dir;
+
     //    unsigned int nsamples = 100;
     unsigned int sample_count = 50;
-    std::vector<kmath::Vec3> image(w*h , kmath::Vec3::ZERO);
+    std::vector<Vec3> image(w * h , Vec3::ZERO);
+
+    const Mat4 inv_proj = inverse(get_projection_matrixf());
+    const Mat4 inv_model = inverse(get_modelview_matrixf());
+    const Mat4 inv_mp = inv_model * inv_proj;
+
+    const Vec3 camera_position = homogeneous_projection(inv_model * Vec4(Vec3::ZERO, 1.0));
+    const float near_plane = get_depth_range().x;
 
     for (int y = 0; y < h; y++){
         for (int x = 0; x < w; x++) {
             for(unsigned int s = 0 ; s < sample_count ; ++s) {
                 float u = ((float)(x) + (float)(rand())/(float)(RAND_MAX)) / w;
                 float v = ((float)(y) + (float)(rand())/(float)(RAND_MAX)) / h;
-                // this is a random uv that belongs to the pixel xy.
-                screen_space_to_world_space_ray(u, v, reinterpret_cast<Vec3&>(pos), reinterpret_cast<Vec3&>(dir));
-                kmath::Vec3 color = scenes[selected_scene].rayTrace( Ray(pos , dir) );
+                const Vec3 ray_direction = homogeneous_projection(inv_mp * Vec4(2.0f * u - 1.0f, 2.0f * v - 1.0f, near_plane, 1.0)) - camera_position;
+                
+                const Vec3 color = scenes[selected_scene].rayTrace(Ray(camera_position, ray_direction));
                 image[x + y*w] += color;
             }
             image[x + y*w] /= static_cast<float>(sample_count);
@@ -201,7 +211,7 @@ void ray_trace_from_camera() {
 
 
 void key (unsigned char keyPressed, [[maybe_unused]] int x, [[maybe_unused]] int y) {
-    Vec3 pos , dir;
+    kmath::Vec3 pos, dir;
     switch (keyPressed) {
     case 'f':
         if (fullScreen == true) {

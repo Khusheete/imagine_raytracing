@@ -10,6 +10,8 @@
 #include "geometry/sphere.h"
 #include "geometry/square.h"
 
+#include "utils/gl_utils.hpp"
+
 
 #include <GL/glut.h>
 

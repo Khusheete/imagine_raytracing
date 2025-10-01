@@ -9,7 +9,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "Vec3.h"
+#include "kmath/vector.hpp"
 #include "Trackball.h"
 
 class Camera {
@@ -39,7 +39,7 @@ public:
   void apply ();
   
   void getPos (float & x, float & y, float & z);
-  inline void getPos (Vec3 & p) { getPos (p[0], p[1], p[2]); }
+  inline void getPos (kmath::Vec3 & p) { getPos (p[0], p[1], p[2]); }
   
 private:
   float fovAngle;
