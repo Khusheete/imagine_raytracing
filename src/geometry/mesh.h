@@ -4,6 +4,10 @@
 
 #include <vector>
 #include <string>
+#include <cfloat>
+#include <cstdint>
+
+#include <GL/gl.h>
 
 #include "kmath/matrix.hpp"
 #include "kmath/vector.hpp"
@@ -12,9 +16,6 @@
 #include "triangle.h"
 #include "Material.h"
 
-#include <GL/glut.h>
-
-#include <cfloat>
 
 
 // -------------------------------------------

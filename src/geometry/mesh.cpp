@@ -4,6 +4,8 @@
 #include <iostream>
 #include <fstream>
 
+#include <GL/gl.h>
+
 
 void Mesh::loadOFF(const std::string & filename) {
     std::ifstream in(filename.c_str());

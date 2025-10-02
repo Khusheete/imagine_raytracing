@@ -5,7 +5,6 @@
 
 #include <cmath>
 
-#include <GL/glut.h>
 
 enum MaterialType {
     Material_Diffuse_Blinn_Phong ,

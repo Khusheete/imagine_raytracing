@@ -49,14 +49,14 @@ add_subdirectory(kmath/)
 add_executable(raytracing
   src/main.cpp
   src/imageLoader.cpp
-  src/Camera.cpp
-  src/Trackball.cpp
 
   src/geometry/ray.cpp
   src/geometry/plane.cpp
   src/geometry/mesh.cpp
 
   src/utils/gl_utils.cpp
+  src/utils/drawing_primitives.cpp
+  src/utils/camera.cpp
 )
 
 target_include_directories(raytracing PRIVATE
@@ -66,5 +66,5 @@ target_include_directories(raytracing PRIVATE
 target_link_libraries(raytracing PUBLIC
   build_options
   kmath
-  glut GLU GL m pthread
+  glfw GL m pthread
 )

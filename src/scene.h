@@ -13,9 +13,6 @@
 #include "utils/gl_utils.hpp"
 
 
-#include <GL/glut.h>
-
-
 enum LightType {
     LightType_Spherical,
     LightType_Quad
