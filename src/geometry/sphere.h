@@ -7,7 +7,7 @@
 
 
 struct RaySphereIntersection {
-    bool exists;
+    bool exists = false;
     kmath::Vec3 position;
     kmath::Vec3 normal;
     float distance;
@@ -92,7 +92,6 @@ public:
         const float delta = b * b - 4.0f * a * c;
 
         if (delta < 0) { // The sphere is not hit
-            intersection.exists = false;
             return intersection;
         }
 

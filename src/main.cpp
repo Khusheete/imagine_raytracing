@@ -54,7 +54,7 @@ static bool right_mouse_button_pressed = false;
 std::vector<Scene> scenes;
 unsigned int selected_scene;
 
-std::vector<std::pair<kmath::Vec3, kmath::Vec3>> rays;
+std::vector<std::pair<Ray, kmath::Vec2>> rays;
 
 
 // =========================
@@ -147,11 +147,15 @@ void draw() {
   glDisable(GL_LIGHTING);
   glDisable(GL_TEXTURE_2D);
   glLineWidth(6);
-  glColor3f(1,0,0);
   glBegin(GL_LINES);
   for (unsigned int r = 0 ; r < rays.size() ; ++r) {
-    glVertex3f( rays[r].first[0],rays[r].first[1],rays[r].first[2] );
-    glVertex3f( rays[r].second[0], rays[r].second[1], rays[r].second[2] );
+    const kmath::Vec3 point = rays[r].first.origin;
+    const kmath::Vec3 dir = rays[r].first.direction;
+    const kmath::Vec3 tip = point + dir;
+    const kmath::Vec2 uv = rays[r].second;
+    glColor3f(uv.x, uv.y, 0.0);
+    glVertex3f(point.x, point.y, point.z);
+    glVertex3f(tip.x, tip.y, tip.z);
   }
   glEnd();
 }
@@ -170,20 +174,24 @@ void ray_trace_from_camera() {
 
   const Mat4 inv_proj = inverse(get_projection_matrixf());
   const Mat4 inv_view = camera.get_inv_view_matrix();
-  const Mat4 inv_mv = inv_view * inv_proj;
+  const Mat4 inv_mvp = inv_view * inv_proj;
 
   const Vec3 camera_position = homogeneous_projection(inv_view * Vec4(Vec3::ZERO, 1.0));
   const float near_plane = get_depth_range().x;
 
+  rays.clear();
+
   // Create image
   for (size_t y = 0; y < image_height; y++){
-    float v = ((float)y + (float)(rand()) / (float)(RAND_MAX)) / image_height;
+    const float v = ((float)y + (float)(rand()) / (float)(RAND_MAX)) / image_height;
     for (size_t x = 0; x < image_width; x++) {
-      for(unsigned int s = 0 ; s < sample_count ; ++s) {
-        float u = ((float)x + (float)(rand()) / (float)(RAND_MAX)) / image_width;
-        const Vec3 ray_direction = homogeneous_projection(inv_mv * Vec4(2.0f * u - 1.0f, 2.0f * v - 1.0f, -near_plane, 1.0)) - camera_position;
+      for(unsigned int s = 0; s < sample_count; ++s) {
+        const float u = ((float)x + (float)(rand()) / (float)(RAND_MAX)) / image_width;
+        const Vec3 ray_direction = homogeneous_projection(inv_mvp * Vec4(2.0f * u - 1.0f, -2.0f * v + 1.0f, -near_plane, 1.0)) - camera_position;
+        const Ray ray = Ray(camera_position, ray_direction);
         
-        const Vec3 color = scenes[selected_scene].rayTrace(Ray(camera_position, ray_direction));
+        if (!(x % 50) && !(y % 50)) rays.push_back(std::make_pair(ray, Vec2(u, v)));
+        const Vec3 color = scenes[selected_scene].rayTrace(ray);
         image[x + y * image_width] += color;
       }
       image[x + y * image_width] /= static_cast<float>(sample_count);
