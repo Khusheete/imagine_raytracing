@@ -91,10 +91,10 @@ public:
 
     Material material;
 
-    void loadOFF (const std::string & filename);
-    void recomputeNormals ();
-    void centerAndScaleToUnit ();
-    void scaleUnit ();
+    void loadOFF(const std::string & filename);
+    void recomputeNormals();
+    void centerAndScaleToUnit();
+    void scaleUnit();
 
 
     virtual void build_arrays() {
@@ -107,14 +107,14 @@ public:
 
 
     void translate(const kmath::Vec3 & p_translation){
-        for( unsigned int v = 0 ; v < vertices.size() ; ++v ) {
+        for (unsigned int v = 0; v < vertices.size(); ++v) {
             vertices[v].position += p_translation;
         }
     }
 
 
     void apply_transformation_matrix(const kmath::Mat3 &p_transform){
-        for( unsigned int v = 0 ; v < vertices.size() ; ++v ) {
+        for (unsigned int v = 0 ; v < vertices.size(); ++v) {
             vertices[v].position = p_transform * vertices[v].position;
         }
 
@@ -187,7 +187,7 @@ public:
 
     RayTriangleIntersection intersect(const Ray &p_ray) const {
         RayTriangleIntersection closestIntersection;
-        closestIntersection.t = FLT_MAX;
+        closestIntersection.distance = FLT_MAX;
         // Note :
         // Creer un objet Triangle pour chaque face
         // Vous constaterez des problemes de précision

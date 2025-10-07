@@ -191,7 +191,7 @@ void ray_trace_from_camera() {
         const Ray ray = Ray(camera_position, ray_direction);
         
         if (!(x % 50) && !(y % 50)) rays.push_back(std::make_pair(ray, Vec2(u, v)));
-        const Vec3 color = scenes[selected_scene].rayTrace(ray);
+        const Vec3 color = scenes[selected_scene].ray_trace(ray);
         image[x + y * image_width] += color;
       }
       image[x + y * image_width] /= static_cast<float>(sample_count);

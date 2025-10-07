@@ -7,16 +7,6 @@
 // #include "Plane.h"
 
 
-struct RayTriangleIntersection {
-    bool intersectionExists;
-    float t;
-    float w0,w1,w2;
-    unsigned int tIndex;
-    kmath::Vec3 intersection;
-    kmath::Vec3 normal;
-};
-
-
 struct Triangle {
     kmath::Vec3 points[3];
     kmath::Vec3 normal;

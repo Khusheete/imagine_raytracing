@@ -7,14 +7,6 @@
 #include "mesh.h"
 #include <cmath>
 
-struct RaySquareIntersection{
-    bool intersectionExists;
-    float t;
-    float u,v;
-    kmath::Vec3 intersection;
-    kmath::Vec3 normal;
-};
-
 
 class Square : public Mesh {
 public:

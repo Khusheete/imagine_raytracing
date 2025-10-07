@@ -8,6 +8,71 @@
 #include "kmath/vector.hpp"
 
 
+struct RaySphereIntersection {
+    kmath::Vec3 position;
+    kmath::Vec3 normal;
+    float distance;
+    bool exists = false;
+    float theta, phi;
+};
+
+
+struct RayTriangleIntersection {
+    kmath::Vec3 position;
+    kmath::Vec3 normal;
+    float distance;
+    bool exists = false;
+    kmath::Vec3 barycentric[3];
+};
+
+
+struct RaySquareIntersection {
+    kmath::Vec3 position;
+    kmath::Vec3 normal;
+    float distance;
+    bool exists = false;
+    kmath::Vec2 uv;
+};
+
+
+struct RayIntersection {
+public:
+    union PolyIntersection {
+        RaySphereIntersection rsph;
+        RayTriangleIntersection rtri;
+        RaySquareIntersection rsqu;
+
+        struct Common {
+            kmath::Vec3 position;
+            kmath::Vec3 normal;
+            float distance;
+            bool exists = false;
+        } common;
+
+
+        PolyIntersection(RaySphereIntersection p_rsph);
+        PolyIntersection(RayTriangleIntersection p_rsph);
+        PolyIntersection(RaySquareIntersection p_rsph);
+        PolyIntersection();
+    } intersection;
+
+    size_t element_id;
+
+    enum class Kind : unsigned char {
+        NONE,
+        RAY_SPHERE,
+        RAY_TRIANGLE,
+        RAY_SQUARE,
+    } kind = Kind::NONE;
+
+
+public:
+    static RayIntersection from(RaySphereIntersection p_rsph);
+    static RayIntersection from(RayTriangleIntersection p_rtri);
+    static RayIntersection from(RaySquareIntersection p_rsqu);
+};
+
+
 struct Ray {
     kmath::Vec3 origin, direction;
 
