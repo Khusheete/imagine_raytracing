@@ -65,4 +65,10 @@ namespace kmath {
   concept Castable = requires(A a, B b) {
     b = a;
   };
+
+
+  template<typename F, typename R, typename ...Ts>
+  concept Function = requires(F f, R r, Ts ...ts) {
+    r = f(ts...);
+  };
 }
