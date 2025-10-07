@@ -13,7 +13,7 @@ struct RaySphereIntersection {
   kmath::Vec3 normal;
   float distance;
   bool exists = false;
-  float theta, phi;
+  float polar, azimuth;
 };
 
 
