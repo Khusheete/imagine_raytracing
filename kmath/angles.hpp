@@ -40,6 +40,12 @@ namespace kmath {
   }
 
 
+  template<Number T>
+  inline _Vec3<T> spherical_to_cartesian(const T p_radius, const T p_polar, const T p_azimuth) {
+    return spherical_to_cartesian(_Vec3<T>(p_radius, p_polar, p_azimuth));
+  }
+
+
   // Turns a vector in cartesian coordinates (Y up) to spherical coordinates (radius, polar, azimuth).
   template<Number T>
   _Vec3<T> cartesian_to_spherical(const _Vec3<T> &p_cartesian) {
@@ -48,6 +54,12 @@ namespace kmath {
     const T polar = std::acos(unit.y);
     const T azimuth = std::atan2(unit.z, unit.x);
     return _Vec3<T>(radius, polar, azimuth);
+  }
+
+
+  template<Number T>
+  inline _Vec3<T> cartesian_to_spherical(const T x, const T y, const T z) {
+    return cartesian_to_spherical(_Vec3<T>(x, y, z));
   }
 
 
