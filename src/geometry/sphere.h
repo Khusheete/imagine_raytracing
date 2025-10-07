@@ -13,6 +13,8 @@ public:
   float radius;
 
   virtual void build_arrays() override;
+  virtual void translate(const kmath::Vec3 &p_translation) override;
+  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform) override;
   RaySphereIntersection intersect(const Ray &p_ray) const;
 
   Sphere();

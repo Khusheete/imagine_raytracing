@@ -1,4 +1,5 @@
 #include "scene.h"
+#include <iostream>
 
 
 using namespace kmath;
@@ -18,7 +19,7 @@ RayIntersection Scene::compute_intersection(const Ray &p_ray) const {
   }
 
   // Square intersection
-  for (size_t i = 0; i < spheres.size(); i++) {
+  for (size_t i = 0; i < squares.size(); i++) {
     RaySquareIntersection rsqu = squares[i].intersect(p_ray);
     if (rsqu.exists && rsqu.distance < result.intersection.common.distance) {
       result.intersection.rsqu = rsqu;

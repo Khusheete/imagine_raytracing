@@ -51,12 +51,12 @@ public:
 
   virtual void build_arrays();
 
-  void translate(const kmath::Vec3 &p_translation);
   void scale(const kmath::Vec3 &p_scale);
   void rotate_x(const float p_angle);
   void rotate_y(const float p_angle);
   void rotate_z(const float p_angle);
-  void apply_transformation_matrix(const kmath::Mat3 &p_transform);
+  virtual void translate(const kmath::Vec3 &p_translation);
+  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform);
 
   void draw() const;
 

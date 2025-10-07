@@ -84,9 +84,19 @@ RaySphereIntersection Sphere::intersect(const Ray &p_ray) const {
 }
 
 
+void Sphere::translate(const kmath::Vec3 &p_translation) {
+  center += p_translation;
+  Mesh::translate(p_translation);
+}
+
+
+void Sphere::apply_transformation_matrix(const kmath::Mat3 &p_transform) {
+  center = p_transform * center;
+  Mesh::apply_transformation_matrix(p_transform); // FIXME: Does not work for non uniform scaling
+}
+
 
 Sphere::Sphere(): Mesh() {}
-
 
  
 Sphere::Sphere(const kmath::Vec3 &p_center, const float p_radius) : Mesh(), center(p_center), radius(p_radius) {}
