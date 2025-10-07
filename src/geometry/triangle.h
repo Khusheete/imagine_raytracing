@@ -8,9 +8,9 @@
 
 
 struct Triangle {
-    kmath::Vec3 points[3];
-    kmath::Vec3 normal;
-    float area;
+  kmath::Vec3 points[3];
+  kmath::Vec3 normal;
+  float area;
 };
 
 

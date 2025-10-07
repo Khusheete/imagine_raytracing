@@ -9,78 +9,78 @@
 
 
 struct RaySphereIntersection {
-    kmath::Vec3 position;
-    kmath::Vec3 normal;
-    float distance;
-    bool exists = false;
-    float theta, phi;
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  float distance;
+  bool exists = false;
+  float theta, phi;
 };
 
 
 struct RayTriangleIntersection {
-    kmath::Vec3 position;
-    kmath::Vec3 normal;
-    float distance;
-    bool exists = false;
-    kmath::Vec3 barycentric[3];
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  float distance;
+  bool exists = false;
+  kmath::Vec3 barycentric[3];
 };
 
 
 struct RaySquareIntersection {
-    kmath::Vec3 position;
-    kmath::Vec3 normal;
-    float distance;
-    bool exists = false;
-    kmath::Vec2 uv;
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  float distance;
+  bool exists = false;
+  kmath::Vec2 uv;
 };
 
 
 struct RayIntersection {
 public:
-    union PolyIntersection {
-        RaySphereIntersection rsph;
-        RayTriangleIntersection rtri;
-        RaySquareIntersection rsqu;
+  union PolyIntersection {
+    RaySphereIntersection rsph;
+    RayTriangleIntersection rtri;
+    RaySquareIntersection rsqu;
 
-        struct Common {
-            kmath::Vec3 position;
-            kmath::Vec3 normal;
-            float distance;
-            bool exists = false;
-        } common;
+    struct Common {
+      kmath::Vec3 position;
+      kmath::Vec3 normal;
+      float distance;
+      bool exists = false;
+    } common;
 
 
-        PolyIntersection(RaySphereIntersection p_rsph);
-        PolyIntersection(RayTriangleIntersection p_rsph);
-        PolyIntersection(RaySquareIntersection p_rsph);
-        PolyIntersection();
-    } intersection;
+    PolyIntersection(RaySphereIntersection p_rsph);
+    PolyIntersection(RayTriangleIntersection p_rsph);
+    PolyIntersection(RaySquareIntersection p_rsph);
+    PolyIntersection();
+  } intersection;
 
-    size_t element_id;
+  size_t element_id;
 
-    enum class Kind : unsigned char {
-        NONE,
-        RAY_SPHERE,
-        RAY_TRIANGLE,
-        RAY_SQUARE,
-    } kind = Kind::NONE;
+  enum class Kind : unsigned char {
+    NONE,
+    RAY_SPHERE,
+    RAY_TRIANGLE,
+    RAY_SQUARE,
+  } kind = Kind::NONE;
 
 
 public:
-    static RayIntersection from(RaySphereIntersection p_rsph);
-    static RayIntersection from(RayTriangleIntersection p_rtri);
-    static RayIntersection from(RaySquareIntersection p_rsqu);
+  static RayIntersection from(RaySphereIntersection p_rsph);
+  static RayIntersection from(RayTriangleIntersection p_rtri);
+  static RayIntersection from(RaySquareIntersection p_rsqu);
 };
 
 
 struct Ray {
-    kmath::Vec3 origin, direction;
+  kmath::Vec3 origin, direction;
 
 public:
-    Ray() = default;
-    Ray(const kmath::Vec3 &p_origin, const kmath::Vec3 &p_direction);
+  Ray() = default;
+  Ray(const kmath::Vec3 &p_origin, const kmath::Vec3 &p_direction);
 
-    kmath::Vec3 get_moment() const;
+  kmath::Vec3 get_moment() const;
 };
 
 
@@ -92,7 +92,7 @@ float distance_squared(const kmath::Vec3 &p_point, const Ray &p_ray); // TODO: i
 
 
 inline float distance(const kmath::Vec3 &p_point, const Ray &p_ray) {
-    return std::sqrt(distance_squared(p_point, p_ray));
+  return std::sqrt(distance_squared(p_point, p_ray));
 }
 
 

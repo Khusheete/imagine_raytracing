@@ -7,7 +7,7 @@ using namespace kmath;
 
 Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
   return as_vector(
-      fast_project(Point3::point(p_point), p_plane)
+    fast_project(Point3::point(p_point), p_plane)
   );
 }
 

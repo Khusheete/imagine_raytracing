@@ -6,19 +6,19 @@
 
 
 RayIntersection RayIntersection::from(const RaySphereIntersection p_rsph) {
-    return RayIntersection(
-        PolyIntersection(p_rsph), -1, Kind::RAY_SPHERE
-    );
+  return RayIntersection(
+    PolyIntersection(p_rsph), -1, Kind::RAY_SPHERE
+  );
 }
 RayIntersection RayIntersection::from(const RayTriangleIntersection p_rtri) {
-    return RayIntersection(
-        PolyIntersection(p_rtri), -1, Kind::RAY_TRIANGLE
-    );
+  return RayIntersection(
+    PolyIntersection(p_rtri), -1, Kind::RAY_TRIANGLE
+  );
 }
 RayIntersection RayIntersection::from(const RaySquareIntersection p_rsqu) {
-    return RayIntersection(
-        PolyIntersection(p_rsqu), -1, Kind::RAY_SQUARE
-    );
+  return RayIntersection(
+    PolyIntersection(p_rsqu), -1, Kind::RAY_SQUARE
+  );
 }
 
 
@@ -29,8 +29,8 @@ RayIntersection::PolyIntersection::PolyIntersection(): common(kmath::Vec3::ZERO,
 
 
 std::ostream &operator<<(std::ostream &p_stream, const Ray &p_ray) {
-    p_stream << "Line(" << p_ray.origin << ", " << p_ray.direction << ")";
-    return p_stream;
+  p_stream << "Line(" << p_ray.origin << ", " << p_ray.direction << ")";
+  return p_stream;
 }
 
 
