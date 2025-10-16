@@ -1,5 +1,4 @@
 #include "scene.h"
-#include <iostream>
 
 
 using namespace kmath;
@@ -159,8 +158,8 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.translate(Vec3(0., 0., -2.));
     s.build_arrays();
-    s.material.diffuse_material = Vec3(1., 1., 1.);
-    s.material.specular_material = Vec3(1., 1., 1.);
+    s.material.diffuse_material  = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
+    s.material.specular_material = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
     s.material.shininess = 16;
   }
   { //Left Wall
@@ -207,8 +206,8 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(90);
     s.build_arrays();
-    s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
-    s.material.specular_material = Vec3(1.0, 1.0, 1.0);
+    s.material.diffuse_material = Vec3(0.0, 0.0, 1.0);
+    s.material.specular_material = Vec3(0.0, 0.0, 1.0);
     s.material.shininess = 16;
   }
   { //Front Wall
@@ -243,8 +242,8 @@ void Scene::setup_cornell_box() {
     s.radius = 0.75f;
     s.build_arrays();
     s.material.type = MaterialType::GLASS;
-    s.material.diffuse_material = Vec3(1., 1., 1.);
-    s.material.specular_material = Vec3(1., 1., 1.);
+    s.material.diffuse_material = Vec3(0., 1., 1.);
+    s.material.specular_material = Vec3(0., 1., 1.);
     s.material.shininess = 16;
     s.material.transparency = 0.;
     s.material.index_medium = 0.;
