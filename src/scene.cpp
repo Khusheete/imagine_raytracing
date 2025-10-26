@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "geometry/ray.h"
 
 
 using namespace kmath;
@@ -41,19 +42,44 @@ Vec3 Scene::ray_trace_recursive(const Ray &p_ray, const int p_remaining_bounces)
 Vec3 Scene::ray_trace(const Ray &p_ray_start) const {
   RayIntersection inter = compute_intersection(p_ray_start);
 
+  Vec3 color;
+
   switch (inter.kind) {
   case RayIntersection::Kind::RAY_SPHERE: {
     const Sphere &sphere = spheres[inter.element_id];
-    return sphere.material.diffuse_material;
+    const RaySphereIntersection &rsph = inter.intersection.rsph;
+    color = sphere.material.get_color(
+      rsph.position,
+      rsph.normal,
+      -p_ray_start.direction,
+      0.1f * Lrgb::ONE,
+      lights
+    );
+      break;
   }
   case RayIntersection::Kind::RAY_SQUARE: {
     const Square &square = squares[inter.element_id];
-    return square.material.diffuse_material;
+    const RaySquareIntersection &rsqu = inter.intersection.rsqu;
+    color = square.material.get_color(
+      rsqu.position,
+      rsqu.normal,
+      -p_ray_start.direction,
+      0.1f * Lrgb::ONE,
+      lights
+    );
+      break;
   }
   case RayIntersection::Kind::RAY_TRIANGLE:
+    break;
   case RayIntersection::Kind::NONE:
     return Vec3::ZERO;
   }
+
+  // for (const Light &light : lights) {
+  //   // TODO
+  // }
+
+  return color;
 }
 
 
@@ -73,9 +99,6 @@ void Scene::draw() const {
 }
 
 
-Light::Light(): power_correction(1.0) {}
-
-
 // ====================
 // = Scene definition =
 // ====================
@@ -90,10 +113,10 @@ void Scene::setup_single_sphere() {
     Light &light = lights[lights.size() - 1];
     light.pos = Vec3(-5,5,5);
     light.radius = 2.5f;
-    light.power_correction = 2.f;
-    light.type = LightType::SPHERICAL;
-    light.material = Vec3(1,1,1);
-    light.in_cam_space = false;
+    light.power_correction = 2.0f;
+    // light.type = LightType::SPHERICAL;
+    light.color = Lrgb::ONE;
+    light.energy = 20.0;
   }
   {
     spheres.resize(spheres.size() + 1);
@@ -120,9 +143,9 @@ void Scene::setup_single_square() {
     light.pos = Vec3(-5, 5, 5);
     light.radius = 2.5f;
     light.power_correction = 2.f;
-    light.type = LightType::SPHERICAL;
-    light.material = Vec3(1, 1, 1);
-    light.in_cam_space = false;
+    // light.type = LightType::SPHERICAL;
+    light.color = Lrgb::ONE;
+    light.energy = 20.0;
   }
   {
     squares.resize(squares.size() + 1);
@@ -147,9 +170,9 @@ void Scene::setup_cornell_box() {
     light.pos = Vec3(0.0, 1.5, 0.0);
     light.radius = 2.5f;
     light.power_correction = 2.f;
-    light.type = LightType::SPHERICAL;
-    light.material = Vec3(1, 1, 1);
-    light.in_cam_space = false;
+    // light.type = LightType::SPHERICAL;
+    light.color = Lrgb::ONE;
+    light.energy = 20.0;
   }
   { //Back Wall
     squares.resize(squares.size() + 1);

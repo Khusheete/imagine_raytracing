@@ -11,25 +11,6 @@
 #include "geometry/square.h"
 
 
-enum class LightType : bool {
-  SPHERICAL,
-  QUAD,
-};
-
-
-struct Light {
-  Mesh quad;
-  kmath::Vec3 pos;
-  kmath::Vec3 material;
-  float radius;
-  float power_correction;
-  LightType type;
-  bool in_cam_space;
-
-  Light();
-};
-
-
 class Scene {
   std::vector<Mesh> meshes;
   std::vector<Sphere> spheres;
