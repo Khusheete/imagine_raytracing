@@ -28,6 +28,14 @@ RayIntersection::PolyIntersection::PolyIntersection(RaySquareIntersection p_rsqu
 RayIntersection::PolyIntersection::PolyIntersection(): common(kmath::Vec3::ZERO, kmath::Vec3::ZERO, std::numeric_limits<float>::infinity(), false) {}
 
 
+kmath::Vec3 reflect(const kmath::Vec3 &p_direction, const kmath::Vec3 &p_normal) {
+  const float dist = kmath::dot(p_direction, p_normal);
+  const float normal_len2 = kmath::length_squared(p_normal);
+  const kmath::Vec3 along_normal = p_normal * (2.0f * dist / normal_len2);
+  return p_direction - along_normal;
+}
+
+
 std::ostream &operator<<(std::ostream &p_stream, const Ray &p_ray) {
   p_stream << "Line(" << p_ray.origin << ", " << p_ray.direction << ")";
   return p_stream;

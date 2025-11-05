@@ -1,5 +1,8 @@
 #include "scene.h"
 #include "geometry/ray.h"
+#include "light.hpp"
+#include "material.h"
+#include <optional>
 
 
 using namespace kmath;
@@ -32,54 +35,107 @@ RayIntersection Scene::compute_intersection(const Ray &p_ray) const {
 }
 
 
-Vec3 Scene::ray_trace_recursive(const Ray &p_ray, const int p_remaining_bounces) const {
-  //TODO RaySceneIntersection raySceneIntersection = computeIntersection(ray);
-  Vec3 color;
+Vec3 Scene::_intersection_get_color(const Ray &p_ray, const RayIntersection &p_intersection) const {
+  switch (p_intersection.kind) {
+  case RayIntersection::Kind::RAY_SPHERE: {
+    const Sphere &sphere = spheres[p_intersection.element_id];
+    const RaySphereIntersection &rsph = p_intersection.intersection.rsph;
+    return sphere.material.get_color(
+      rsph.position,
+      rsph.normal,
+      -p_ray.direction,
+      0.1f * Lrgb::ONE,
+      lights
+    );
+  }
+  case RayIntersection::Kind::RAY_SQUARE: {
+    const Square &square = squares[p_intersection.element_id];
+    const RaySquareIntersection &rsqu = p_intersection.intersection.rsqu;
+    return square.material.get_color(
+      rsqu.position,
+      rsqu.normal,
+      -p_ray.direction,
+      0.1f * Lrgb::ONE,
+      lights
+    );
+  }
+  case RayIntersection::Kind::RAY_TRIANGLE:
+    return Vec3::ZERO;
+  case RayIntersection::Kind::NONE:
+    return Vec3::ZERO;
+  }
+  return Vec3::ZERO;
+}
+
+
+std::optional<const Material*> Scene::_intersection_get_material(const RayIntersection &p_intersection) const {
+  switch (p_intersection.kind) {
+  case RayIntersection::Kind::RAY_SPHERE: {
+    const Sphere &sphere = spheres[p_intersection.element_id];
+    return std::optional<const Material*>(&sphere.material);
+  }
+  case RayIntersection::Kind::RAY_SQUARE: {
+    const Square &square = squares[p_intersection.element_id];
+    return std::optional<const Material*>(&square.material);
+  }
+  case RayIntersection::Kind::RAY_TRIANGLE:
+    return std::optional<const Material*>();
+  case RayIntersection::Kind::NONE:
+    return std::optional<const Material*>();
+  }
+  return std::optional<const Material*>();
+}
+
+
+Lrgb Scene::ray_trace_recursive(const Ray &p_ray, const int p_bounce_count) const {
+  Lrgb color = Lrgb::ZERO;
+  Ray ray = p_ray;
+  float bounce_contribution = 1.0;
+
+  for (int bounce = 0; bounce <= p_bounce_count; bounce++) {
+    const RayIntersection scene_inter = compute_intersection(ray);
+
+    if (!scene_inter.intersection.common.exists) {
+      break;
+    }
+
+    // Apply lights
+    const Material &intersection_material = *_intersection_get_material(scene_inter).value();
+    const Vec3 intersection_normal = scene_inter.intersection.common.normal;
+    const Vec3 intersection_point = scene_inter.intersection.common.position + 0.0001f * intersection_normal;
+    Lrgb bounce_color = Lrgb::ZERO;
+
+    for (const Light &light : lights) {
+      const Vec3 light_direction = light.pos - intersection_point;
+      const float light_distance = length(light_direction);
+      const Ray light_ray = Ray(intersection_point, light_direction);
+
+      const RayIntersection light_intersection = compute_intersection(light_ray);
+
+      if (light_intersection.intersection.common.exists &&
+          light_intersection.intersection.common.distance < light_distance) {
+        continue;
+      }
+
+      bounce_color += intersection_material.get_light_influence(intersection_point, intersection_normal, ray.direction, light);
+    }
+
+    // Add bounce contribution
+    color += bounce_contribution * bounce_color;
+
+    // Setup for the next light bounce
+    bounce_contribution *= 0.2;
+    const Vec3 reflected_direction = reflect(ray.direction, intersection_normal);
+    ray = Ray(intersection_point, reflected_direction);
+  }
+  
   return color;
 }
 
 
-Vec3 Scene::ray_trace(const Ray &p_ray_start) const {
+Lrgb Scene::ray_trace(const Ray &p_ray_start) const {
   RayIntersection inter = compute_intersection(p_ray_start);
-
-  Vec3 color;
-
-  switch (inter.kind) {
-  case RayIntersection::Kind::RAY_SPHERE: {
-    const Sphere &sphere = spheres[inter.element_id];
-    const RaySphereIntersection &rsph = inter.intersection.rsph;
-    color = sphere.material.get_color(
-      rsph.position,
-      rsph.normal,
-      -p_ray_start.direction,
-      0.1f * Lrgb::ONE,
-      lights
-    );
-      break;
-  }
-  case RayIntersection::Kind::RAY_SQUARE: {
-    const Square &square = squares[inter.element_id];
-    const RaySquareIntersection &rsqu = inter.intersection.rsqu;
-    color = square.material.get_color(
-      rsqu.position,
-      rsqu.normal,
-      -p_ray_start.direction,
-      0.1f * Lrgb::ONE,
-      lights
-    );
-      break;
-  }
-  case RayIntersection::Kind::RAY_TRIANGLE:
-    break;
-  case RayIntersection::Kind::NONE:
-    return Vec3::ZERO;
-  }
-
-  // for (const Light &light : lights) {
-  //   // TODO
-  // }
-
-  return color;
+  return _intersection_get_color(p_ray_start, inter);
 }
 
 

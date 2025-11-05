@@ -86,6 +86,8 @@ public:
 
 // Project p_point onto p_line
 kmath::Vec3 project(const kmath::Vec3 &p_point, const Ray &p_ray); // TODO: implement
+// Reflect p_direction given the normal p_normal
+kmath::Vec3 reflect(const kmath::Vec3 &p_direction, const kmath::Vec3 &p_normal);
 
 // Returns the orthogonal distance between p_point and p_line
 float distance_squared(const kmath::Vec3 &p_point, const Ray &p_ray); // TODO: implement

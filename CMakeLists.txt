@@ -49,8 +49,7 @@ add_subdirectory(kmath/)
 add_executable(raytracing
   src/main.cpp
   src/scene.cpp
-  src/imageLoader.cpp
-  # src/material.cpp
+  src/material.cpp
   # src/light.cpp
 
   src/geometry/ray.cpp
@@ -62,6 +61,7 @@ add_executable(raytracing
   src/utils/gl_utils.cpp
   src/utils/drawing_primitives.cpp
   src/utils/camera.cpp
+  src/utils/image.cpp
 )
 
 target_include_directories(raytracing PRIVATE

@@ -1,14 +1,14 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include <optional>
 #include <vector>
-
-#include "kmath/vector.hpp"
 
 #include "geometry/ray.h"
 #include "geometry/mesh.h"
 #include "geometry/sphere.h"
 #include "geometry/square.h"
+#include "material.h"
 
 
 class Scene {
@@ -21,12 +21,16 @@ public:
   void draw() const;
 
   RayIntersection compute_intersection(const Ray &p_ray) const;
-  kmath::Vec3 ray_trace_recursive(const Ray &p_ray, const int p_remaining_bounces = 10) const;
-  kmath::Vec3 ray_trace(const Ray &p_ray_start) const;
+  kmath::Lrgb ray_trace_recursive(const Ray &p_ray, const int p_bounce_count = 4) const;
+  kmath::Lrgb ray_trace(const Ray &p_ray_start) const;
   
   void setup_single_sphere();
   void setup_single_square();
   void setup_cornell_box();
+
+public:
+  kmath::Lrgb _intersection_get_color(const Ray &p_ray, const RayIntersection &p_intersection) const;
+  std::optional<const Material*> _intersection_get_material(const RayIntersection &p_intersection) const;
 };
 
 
