@@ -67,7 +67,7 @@ namespace kmath {
   };
 
 
-  template<Number T> const _Plane3<T> _Plane3<T>::VANISHING_PLANE = _Plane3<T>((T)0.0, (T)0.0, (T)0.0, (T)-1.0);
+  template<Number T> const _Plane3<T> _Plane3<T>::VANISHING_PLANE = _Plane3<T>((T)0.0, (T)0.0, (T)0.0, (T)1.0);
   template<Number T> const _Plane3<T> _Plane3<T>::YZ = _Plane3<T>((T)1.0, (T)0.0, (T)0.0, (T)0.0);
   template<Number T> const _Plane3<T> _Plane3<T>::ZX = _Plane3<T>((T)0.0, (T)1.0, (T)0.0, (T)0.0);
   template<Number T> const _Plane3<T> _Plane3<T>::XY = _Plane3<T>((T)0.0, (T)0.0, (T)1.0, (T)0.0);
@@ -142,7 +142,7 @@ namespace kmath {
     static inline _Line3<T> vanishing_line(const _Vec3<T> direction) {
       return _Line3<T>(
         (T)0.0, (T)0.0, (T)0.0,
-        -direction.x, -direction.y, -direction.z
+        direction.x, direction.y, direction.z
       );
     }
 
@@ -150,7 +150,7 @@ namespace kmath {
     static inline _Line3<T> vanishing_line(const T dx, const T dy, const T dz) {
       return _Line3<T>(
         (T)0.0, (T)0.0, (T)0.0,
-        -dx, -dy, -dz
+        dx, dy, dz
       );
     }
 
@@ -158,7 +158,7 @@ namespace kmath {
     static inline _Line3<T> from_plucker(const _Vec3<T> direction, const _Vec3<T> moment) {
       return _Line3<T>(
         direction.x, direction.y, direction.z,
-        moment.x, moment.y, moment.z      
+        moment.x, moment.y, moment.z
       );
     }
 
@@ -166,7 +166,7 @@ namespace kmath {
     static inline _Line3<T> from_plucker(const T dx, const T dy, const T dz, const T mx, const T my, const T mz) {
       return _Line3<T>(
         dx, dy, dz,
-        mx, my, mz      
+        mx, my, mz
       );
     }
   };
@@ -193,14 +193,14 @@ namespace kmath {
 
     static inline _Point3<T> direction(const _Vec3<T> &d) {
       return _Point3<T>(
-        -d.x, -d.y, -d.z, (T)0.0
+        d.x, d.y, d.z, (T)0.0
       );
     }
 
 
     static inline _Point3<T> direction(const T x, const T y, const T z) {
       return _Point3<T>(
-        -x, -y, -z, (T)0.0
+        x, y, z, (T)0.0
       );
     }
 
@@ -216,9 +216,9 @@ namespace kmath {
   template<Number T>
   const _Point3<T> _Point3<T>::ZERO   = _Point3<T>((T)0.0, (T)0.0, (T)0.0, (T)0.0);
   template<Number T>
-  const _Point3<T> _Point3<T>::ORIGIN  = _Point3<T>((T)0.0, (T)0.0, (T)0.0, (T)1.0);
+  const _Point3<T> _Point3<T>::ORIGIN = _Point3<T>((T)0.0, (T)0.0, (T)0.0, (T)1.0);
   template<Number T>
-  const _Point3<T> _Point3<T>::X_DIR = _Point3<T>((T)1.0, (T)0.0, (T)0.0, (T)0.0);
+  const _Point3<T> _Point3<T>::X_DIR  = _Point3<T>((T)1.0, (T)0.0, (T)0.0, (T)0.0);
   template<Number T>
   const _Point3<T> _Point3<T>::Y_DIR  = _Point3<T>((T)0.0, (T)1.0, (T)0.0, (T)0.0);
   template<Number T>
@@ -296,7 +296,7 @@ namespace kmath {
       a.e1 * b.e2 - a.e2 * b.e1,
       a.e0 * b.e1 - a.e1 * b.e0,
       a.e0 * b.e2 - a.e2 * b.e0,
-      a.e0 * b.e3 - a.e3 * b.e0    
+      a.e0 * b.e3 - a.e3 * b.e0
     );
   }
 
@@ -314,7 +314,7 @@ namespace kmath {
 
 
   template<Number T>
-  inline _Point3<T> dual(const _Plane3<T> &p) {
+  inline _Point3<T> dual(const _Plane3<T> &p) { // FIXME: Implement Hodge dual
     return _Point3<T>(p.e1, p.e2, p.e3, (T)0.0);
   }
 
@@ -525,6 +525,14 @@ namespace kmath {
   }
 
 
+  template<Number T>
+  inline _Vec3<T> get_direction(const _Line3<T> &l) {
+    return (is_vanishing(l))?
+      _Vec3<T>(l.e01, l.e02, l.e03)
+      : _Vec3<T>(l.e23, l.e31, l.e12);
+  }
+
+
   // template<Number T>
   // inline T get_angle(const _Line3<T> &a);
 
@@ -649,15 +657,15 @@ namespace kmath {
   inline _Vec3<T> as_vector(const _Point3<T> &a) {
     if (!is_vanishing(a)) {
       return _Vec3<T>(
-        a.e032 / a.e123,
-        a.e013 / a.e123,
-        a.e021 / a.e123      
-      );
+        a.e032,
+        a.e013,
+        a.e021
+      ) / a.e123;
     } else {
       return _Vec3<T>(
-        -a.e032,
-        -a.e013,
-        -a.e021
+        a.e032,
+        a.e013,
+        a.e021
       );
     }
   }
@@ -924,7 +932,7 @@ namespace kmath {
 
 
   template<Number T>
-  inline bool is_on(const _Point3<T> &point, const _Line3<T> &line) {
+  inline bool is_on(const _Point3<T> &point, const _Line3<T> &line) { // FIXME: This should be an operation analog to the meet, should it be the join ?
     return is_approx_zero(inner(line, point));
   }
 
@@ -989,7 +997,7 @@ namespace kmath {
 
 
   template<Number T>
-  inline bool is_on(const _Point3<T> &point, const _Plane3<T> &plane) {
+  inline bool is_on(const _Point3<T> &point, const _Plane3<T> &plane) { // FIXME: Same as is_on(_Point3, _Line3)
     return is_approx_zero(inner(plane, point));
   }
 

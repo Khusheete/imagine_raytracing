@@ -96,4 +96,10 @@ namespace kmath {
   inline T lerp(const T &a, const T &b, const S &t) {
     return (S)(1.0 - t) * a + t * b;
   }
+
+
+  template<Number T>
+  inline T sign(const T a) {
+    return (a > (T)0.0)? (T)1.0 : (a == (T)0.0)? (T)0.0 : (T)-1.0;
+  }
 }

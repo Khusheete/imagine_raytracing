@@ -22,6 +22,7 @@
 #pragma once
 
 
+#include "constants.hpp"
 #include "euclidian_flat_3d.hpp"
 #include "utils.hpp"
 #include "vector.hpp"
@@ -168,7 +169,7 @@ namespace kmath {
 
   template<Number T>
   _Motor3<T> sqrt(const _Motor3<T> &m) {
-    if (m.s >= 0.0) {
+    if (m.s >= (T)0.0) {
       T num = (T)2.0 * ((T)1.0 + m.s);
       T g4 = m.e0123 / num;
       return _Motor3<T>(
@@ -185,16 +186,28 @@ namespace kmath {
       T num = (T)2.0 * ((T)1.0 - m.s);
       T g4 = m.e0123 / num;
       return _Motor3<T>(
-        (T)1.0 - m.s,
-        -m.e23,
-        -m.e31,
-        -m.e12,
-        -m.e0123 - m.s * g4,
-        -m.e01 + m.e23 * g4,
-        -m.e02 + m.e31 * g4,
-        -m.e03 + m.e12 * g4
+        -(T)1.0 + m.s,
+        m.e23,
+        m.e31,
+        m.e12,
+        m.e0123 - m.s * g4,
+        m.e01 + m.e23 * g4,
+        m.e02 + m.e31 * g4,
+        m.e03 + m.e12 * g4
       ) / std::sqrt(num);
     }
+  }
+
+
+  // Calculates the square root of m while keeping orientation. The motor m must be
+  // normalized.
+  template<Number T>
+  _Motor3<T> oriented_sqrt(const _Motor3<T> &m) {
+    _Motor3<T> n = sqrt(m);
+    if (m.s < -0.5) {
+      n = Rotor3::from_axis_angle(get_y_basis_vector(get_real_part(n)), PI) * n;
+    }
+    return n;
   }
 
 
@@ -561,7 +574,32 @@ namespace kmath {
     a = a * b;
     return a;
   }
-  
+
+
+  template<Number T>
+  inline _Motor3<T> operator*(const _Rotor3<T> &a, const _Motor3<T> &b) {
+    return _Motor3<T>(
+      a * get_real_part(b),
+      a * get_dual_part(b)
+    );
+  }
+
+
+  template<Number T>
+  inline _Motor3<T> operator*(const _Motor3<T> &a, const _Rotor3<T> &b) {
+    return _Motor3<T>(
+      get_real_part(a) * b,
+      get_dual_part(a) * b
+    );
+  }
+
+
+  template<Number T>
+  inline _Motor3<T> &operator*=(_Motor3<T> &a, const _Rotor3<T> &b) {
+    a = a * b;
+    return a;
+  }
+
 
   // ===========================
   // = Interpolation functions =
@@ -614,10 +652,10 @@ namespace kmath {
   template<Number T>
   _Plane3<T> transform(const _Plane3<T> &a, const _Motor3<T> &m) {
     return _Plane3<T>(
-      - (T)2.0 * a.e1 * m.e02 * m.e12 - (T)2.0 * a.e2 * m.e03 * m.e23 - (T)2.0 * a.e3 * m.e01 * m.e31 + a.e0 * m.s * m.s + a.e0 * m.e23 * m.e23 + a.e0 * m.e31 * m.e31 + a.e0 * m.e12 * m.e12 + (T)2.0 * a.e1 * m.s * m.e01 + (T)2.0 * a.e2 * m.s * m.e02 + (T)2.0 * a.e3 * m.s * m.e03 + (T)2.0 * a.e1 * m.e0123 * m.e23 + (T)2.0 * a.e2 * m.e0123 * m.e31 + (T)2.0 * a.e3 * m.e0123 * m.e12 + (T)2.0 * a.e1 * m.e03 * m.e31 + (T)2.0 * a.e2 * m.e12 * m.e01 + (T)2.0 * a.e3 * m.e02 * m.e23,
       - a.e1 * m.e12 * m.e12 - a.e1 * m.e31 * m.e31 + a.e1 * m.s * m.s + a.e1 * m.e23 * m.e23 + (T)2.0 * a.e2 * m.e12 * m.s + (T)2.0 * a.e2 * m.e23 * m.e31 - (T)2.0 * a.e3 * m.s * m.e31 + (T)2.0 * a.e3 * m.e12 * m.e23,
       - a.e2 * m.e23 * m.e23 - a.e2 * m.e12 * m.e12 + a.e2 * m.s * m.s + a.e2 * m.e31 * m.e31 + (T)2.0 * a.e3 * m.s * m.e23 + (T)2.0 * a.e3 * m.e12 * m.e31 - (T)2.0 * a.e1 * m.s * m.e12 + (T)2.0 * a.e1 * m.e23 * m.e31,
-      - a.e3 * m.e23 * m.e23 - a.e3 * m.e31 * m.e31 + a.e3 * m.s * m.s + a.e3 * m.e12 * m.e12 + (T)2.0 * a.e1 * m.s * m.e31 + (T)2.0 * a.e1 * m.e12 * m.e23 - (T)2.0 * a.e2 * m.s * m.e23 + (T)2.0 * a.e2 * m.e12 * m.e31
+      - a.e3 * m.e23 * m.e23 - a.e3 * m.e31 * m.e31 + a.e3 * m.s * m.s + a.e3 * m.e12 * m.e12 + (T)2.0 * a.e1 * m.s * m.e31 + (T)2.0 * a.e1 * m.e12 * m.e23 - (T)2.0 * a.e2 * m.s * m.e23 + (T)2.0 * a.e2 * m.e12 * m.e31,
+      - (T)2.0 * a.e1 * m.e02 * m.e12 - (T)2.0 * a.e2 * m.e03 * m.e23 - (T)2.0 * a.e3 * m.e01 * m.e31 + a.e0 * m.s * m.s + a.e0 * m.e23 * m.e23 + a.e0 * m.e31 * m.e31 + a.e0 * m.e12 * m.e12 + (T)2.0 * a.e1 * m.s * m.e01 + (T)2.0 * a.e2 * m.s * m.e02 + (T)2.0 * a.e3 * m.s * m.e03 + (T)2.0 * a.e1 * m.e0123 * m.e23 + (T)2.0 * a.e2 * m.e0123 * m.e31 + (T)2.0 * a.e3 * m.e0123 * m.e12 + (T)2.0 * a.e1 * m.e03 * m.e31 + (T)2.0 * a.e2 * m.e12 * m.e01 + (T)2.0 * a.e3 * m.e02 * m.e23
     );
   }
   

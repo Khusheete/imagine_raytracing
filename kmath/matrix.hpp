@@ -232,8 +232,8 @@ namespace kmath {
     }
 
 
-    static inline _Mat3<T> scale(const T scale) {
-      return scale * _Mat3<T>::IDENTITY;
+    static inline _Mat4<T> scale(const T s) {
+      return scale(s, s, s, 1.0f);
     }
 
 
@@ -523,10 +523,10 @@ namespace kmath {
 
     static inline _Mat4<T> translation(const _Vec3<T> &translation) {
       return _Mat4<T>(
-        _Vec4<T>((T)1.0, (T)0.0, (T)0.0, translation.x),
-        _Vec4<T>((T)0.0, (T)1.0, (T)0.0, translation.y),
-        _Vec4<T>((T)0.0, (T)0.0, (T)1.0, translation.z),
-        _Vec4<T>((T)0.0, (T)0.0, (T)0.0, (T)1.0       )
+        _Vec4<T>((T)1.0, (T)0.0, (T)0.0, (T)0.0),
+        _Vec4<T>((T)0.0, (T)1.0, (T)0.0, (T)0.0),
+        _Vec4<T>((T)0.0, (T)0.0, (T)1.0, (T)0.0),
+        _Vec4<T>(translation           , (T)1.0)
       );
     }
 
