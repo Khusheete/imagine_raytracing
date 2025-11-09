@@ -1,7 +1,11 @@
 #include <GL/gl.h>
 #include <algorithm>
+#include <cmath>
+#include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <ostream>
+#include <thread>
 #include <vector>
 #include <string>
 #include <cstdio>
@@ -17,6 +21,8 @@
 #include "utils/drawing_primitives.hpp"
 #include "utils/gl_utils.hpp"
 #include "utils/image.hpp"
+#include "utils/profiler.hpp"
+#include "utils/thread_group.hpp"
 
 
 // ====================
@@ -187,7 +193,6 @@ kmath::Vec3 tonemap_agx(kmath::Vec3 color) {
     kmath::Vec3(-0.10886710826831608324, -0.027084020983874825605, 1.402665347143271889)
   );
 
-
 	// LOG2_MIN      = -10.0
 	// LOG2_MAX      =  +6.5
 	// MIDDLE_GRAY   =  0.18
@@ -237,9 +242,7 @@ void ray_trace_from_camera() {
   
   const size_t image_width = window_width;
   const size_t image_height = window_height;
-  std::cout << "Ray tracing a " << image_width << " x " << image_height << " image" << std::endl;
 
-  // unsigned int nsamples = 100;
   const unsigned int sample_count = 50;
   const float sample_division = 1.0f / static_cast<float>(sample_count);
   Image image(image_width, image_height);
@@ -251,35 +254,84 @@ void ray_trace_from_camera() {
   const Vec3 camera_position = homogeneous_projection(inv_view * Vec4(Vec3::ZERO, 1.0));
   const float near_plane = get_depth_range().x;
 
+  // Reset debug rays
   rays.clear();
 
-  // Create image
-  for (size_t y = 0; y < image_height; y++){
-    const float v = ((float)y + (float)(rand()) / (float)(RAND_MAX)) / image_height;
-    for (size_t x = 0; x < image_width; x++) {
-      for(unsigned int s = 0; s < sample_count; ++s) {
-        const float u = ((float)x + (float)(rand()) / (float)(RAND_MAX)) / image_width;
-        const Vec3 ray_direction = homogeneous_projection(inv_mvp * Vec4(2.0f * u - 1.0f, -2.0f * v + 1.0f, -near_plane, 1.0)) - camera_position;
-        const Ray ray = Ray(camera_position, ray_direction);
-        
-        if (!(x % 50) && !(y % 50)) rays.push_back(std::make_pair(ray, Vec2(u, v)));
-        // const Vec3 color = scenes[selected_scene].ray_trace(ray);
-        const Vec3 color = scenes[selected_scene].ray_trace_recursive(ray, 4);
-        image(x, y) += color;
+  Profiler full_render_profile;
+  full_render_profile.start();
+  {
+    Profiler specific_profiler;
+
+    // Create thread work group to do work
+    const size_t available_thread_count = std::thread::hardware_concurrency();
+    size_t thread_count = (available_thread_count)? available_thread_count / 2 : 8;
+    std::cout << "Ray tracing a " << image_width << " x " << image_height << " image on " << thread_count << " threads" << std::endl;
+    ThreadWorkGroup work_group(thread_count);
+
+    // Lambda to declare a rendering pass
+    auto exec_phase = [&](const char *p_phase_name, const ParallelFunction &p_func) -> void {
+      specific_profiler.start();
+
+      // Start work
+      work_group.execute(p_func, 0, image.get_size());
+
+      // Report progress
+      while (!work_group.is_work_done()) {
+        const double progress = work_group.get_progress();
+        const size_t ticks = progress * 40;
+        std::cout << "\r" << p_phase_name << ": <";
+        for (size_t i = 0; i < ticks; i++) {
+          std::cout << "=";
+        }
+        for (size_t i = ticks; i < 40; i++) {
+          std::cout << "-";
+        }
+        std::cout << "> " << std::setprecision(4) << progress * 100.0 << "%   ";
+        std::flush(std::cout);
+      
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(1ms);
       }
-      image(x, y) *= sample_division;
-    }
+
+      work_group.join();
+      specific_profiler.end();
+
+      std::cout << "\e[1M\r"; // Clear the line giving progress
+      std::cout << "\t" << p_phase_name << " finished in " << specific_profiler.get_exec_time() << std::endl;
+    };
+
+    // Execute render phases
+    exec_phase(
+      "Scene render",
+      [&](const size_t p_exec_index) -> void {
+        const size_t x = p_exec_index % image_width;
+        const size_t y = p_exec_index / image_width;
+
+        for(unsigned int s = 0; s < sample_count; s++) {
+          const float u = ((float)x + (float)(rand()) / (float)(RAND_MAX)) / image_width;
+          const float v = ((float)y + (float)(rand()) / (float)(RAND_MAX)) / image_height;
+          const Vec3 ray_direction = homogeneous_projection(inv_mvp * Vec4(2.0f * u - 1.0f, -2.0f * v + 1.0f, -near_plane, 1.0)) - camera_position;
+          const Ray ray = Ray(camera_position, ray_direction);
+
+          // const Vec3 color = scenes[selected_scene].ray_trace(ray);
+          const Vec3 color = scenes[selected_scene].ray_trace_recursive(ray, 4);
+
+          image(p_exec_index) += color;
+        }
+
+        image(p_exec_index) *= sample_division;
+      }
+    );
+
+    exec_phase(
+      "Tone mapping",
+      [&](const size_t p_exec_index) -> void {
+        image(p_exec_index) = tonemap_agx(image(p_exec_index));
+      }
+    );
   }
-
-  std::cout << "\tScene rendered" << std::endl;
-
-  image.map([&](const Lrgb &p_color) -> Lrgb {
-    return tonemap_agx(p_color);
-  });
-
-  std::cout << "\tTonemapping done" << std::endl;
-
-  std::cout << "\tRender done" << std::endl;
+  full_render_profile.end();
+  std::cout << "\tRender done in " << full_render_profile.get_exec_time() << std::endl;
 
   // Write the raytraced image to a file
   std::string filename = "./rendu.ppm";

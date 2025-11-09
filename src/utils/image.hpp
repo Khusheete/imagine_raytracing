@@ -23,6 +23,18 @@ concept ColorMapper = requires(F f, kmath::Lrgb result_color, const kmath::Lrgb 
 
 class Image {
 public:
+  inline size_t get_width() const { return width; }
+  inline size_t get_height() const { return height; }
+  inline size_t get_size() const { return data.size(); }
+  
+  inline kmath::Lrgb &operator()(const size_t p_index) {
+    return data[p_index];
+  }
+
+  const kmath::Lrgb &operator()(const size_t p_index) const {
+    return data[p_index];
+  }
+
   inline kmath::Lrgb &operator()(const size_t p_x_index, const size_t p_y_index) {
     return data[p_x_index + p_y_index * width];
   }

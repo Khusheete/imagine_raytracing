@@ -62,6 +62,7 @@ add_executable(raytracing
   src/utils/drawing_primitives.cpp
   src/utils/camera.cpp
   src/utils/image.cpp
+  src/utils/thread_group.cpp
 )
 
 target_include_directories(raytracing PRIVATE
