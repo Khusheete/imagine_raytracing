@@ -17,7 +17,6 @@ enum class MaterialType : unsigned char {
 
 struct Material {
 public:
-  kmath::Lrgb ambient_material = kmath::Lrgb::ZERO;
   kmath::Lrgb diffuse_material = kmath::Lrgb::ONE;
   kmath::Lrgb specular_material = kmath::Lrgb::ZERO;
   double shininess = 1.0;
@@ -34,14 +33,14 @@ public:
   kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Lrgb &p_ambiant_energy, const LightIt &p_lights) const {
     using namespace kmath;
   
-    const Lrgb ambiant = ambient_material * p_ambiant_energy;
+    const Lrgb ambiant = diffuse_material * p_ambiant_energy;
 
     Lrgb light_contribs = Lrgb::ZERO;
     for (const Light &light : p_lights) {
       light_contribs += get_light_influence(p_fragment_position, p_surface_normal, p_camera_direction, light);
     }
 
-    return ambiant; // + light_contribs;
+    return ambiant + light_contribs;
   }
 };
 

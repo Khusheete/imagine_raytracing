@@ -171,9 +171,9 @@ void Mesh::draw() const {
                                   material.specular_material.y,
                                   material.specular_material.z,
                                   1.0};
-  GLfloat material_ambient[4] = {material.ambient_material.x,
-                                 material.ambient_material.y,
-                                 material.ambient_material.z,
+  GLfloat material_ambient[4] = {material.diffuse_material.x,
+                                 material.diffuse_material.y,
+                                 material.diffuse_material.z,
                                  1.0};
 
   glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material_specular);

@@ -103,7 +103,7 @@ Lrgb Scene::ray_trace_recursive(const Ray &p_ray, const int p_bounce_count) cons
     const Material &intersection_material = *_intersection_get_material(scene_inter).value();
     const Vec3 intersection_normal = scene_inter.intersection.common.normal;
     const Vec3 intersection_point = scene_inter.intersection.common.position + 0.0001f * intersection_normal;
-    Lrgb bounce_color = Lrgb::ZERO;
+    Lrgb bounce_color = 0.1f * intersection_material.diffuse_material;
 
     for (const Light &light : lights) {
       const Vec3 light_direction = light.pos - intersection_point;
