@@ -168,6 +168,7 @@ kmath::Vec3 agx_contrast_approx(kmath::Vec3 x) {
 	return 0.021f * x + 4.0111f * x2 - 25.682f * x2 * x + 70.359f * x4 - 74.778f * x4 * x + 27.069f * x4 * x2;
 }
 
+// This code is adapted from the Godot game engine
 // This is an approximation and simplification of EaryChow's AgX implementation that is used by Blender.
 // This code is based off of the script that generates the AgX_Base_sRGB.cube LUT that Blender uses.
 // Source: https://github.com/EaryChow/AgX_LUT_Gen/blob/main/AgXBasesRGB.py
@@ -190,8 +191,8 @@ kmath::Vec3 tonemap_agx(kmath::Vec3 color) {
 	// LOG2_MIN      = -10.0
 	// LOG2_MAX      =  +6.5
 	// MIDDLE_GRAY   =  0.18
-	const float min_ev = -12.4739311883324; // log2(pow(2, LOG2_MIN) * MIDDLE_GRAY)
-	const float max_ev = 4.02606881166759; // log2(pow(2, LOG2_MAX) * MIDDLE_GRAY)
+	const float min_ev = -12.4739311883324;
+	const float max_ev = 4.02606881166759;
 
 	// Large negative values in one channel and large positive values in other
 	// channels can result in a colour that appears darker and more saturated than
@@ -227,9 +228,6 @@ kmath::Vec3 tonemap_agx(kmath::Vec3 color) {
 	// Apply outset to make the result more chroma-laden and then go back to linear sRGB.
 	color = agx_outset_rec2020_to_srgb_matrix * color;
 
-	// Blender's lusRGB.compensate_low_side is too complex for this shader, so
-	// simply return the color, even if it has negative components. These negative
-	// components may be useful for subsequent color adjustments.
 	return color;
 }
 
