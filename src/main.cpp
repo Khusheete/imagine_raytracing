@@ -5,11 +5,10 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+#include <random>
 #include <thread>
 #include <vector>
 #include <string>
-#include <cstdio>
-#include <cstdlib>
 #include <chrono>
 
 #include <GLFW/glfw3.h>
@@ -242,6 +241,8 @@ void ray_trace_from_camera() {
   
   const size_t image_width = window_width;
   const size_t image_height = window_height;
+  const float inv_image_width = 1.0f / static_cast<float>(image_width);
+  const float inv_image_height = 1.0f / static_cast<float>(image_height);
 
   const unsigned int sample_count = 50;
   const float sample_division = 1.0f / static_cast<float>(sample_count);
@@ -254,6 +255,8 @@ void ray_trace_from_camera() {
   const Vec3 camera_position = homogeneous_projection(inv_view * Vec4(Vec3::ZERO, 1.0));
   const float near_plane = get_depth_range().x;
 
+  const uint32_t random_seed = 47;
+
   // Reset debug rays
   rays.clear();
 
@@ -264,7 +267,7 @@ void ray_trace_from_camera() {
 
     // Create thread work group to do work
     const size_t available_thread_count = std::thread::hardware_concurrency();
-    size_t thread_count = (available_thread_count)? available_thread_count / 2 : 8;
+    size_t thread_count = (available_thread_count)? available_thread_count : 8;
     std::cout << "Ray tracing a " << image_width << " x " << image_height << " image on " << thread_count << " threads" << std::endl;
     ThreadWorkGroup work_group(thread_count);
 
@@ -300,16 +303,30 @@ void ray_trace_from_camera() {
       std::cout << "\t" << p_phase_name << " finished in " << specific_profiler.get_exec_time() << std::endl;
     };
 
+    // Instantiate a random number generators for each thread
+    std::vector<std::mt19937> rngs(thread_count);
+    {
+      std::mt19937 master_rng(random_seed);
+      std::uniform_int_distribution<uint32_t> master_gen;
+      
+      for (size_t i = 0; i < thread_count; i++) {
+        rngs[i] = std::mt19937(master_gen(master_rng));
+      }
+    }
+    // TODO: use blue noise
+    std::uniform_real_distribution<float> randf;
+
     // Execute render phases
     exec_phase(
       "Scene render",
-      [&](const size_t p_exec_index) -> void {
+      [&](const size_t p_thread_id, const size_t p_exec_index) -> void {
+        std::mt19937 &rng = rngs[p_thread_id];
         const size_t x = p_exec_index % image_width;
         const size_t y = p_exec_index / image_width;
 
-        for(unsigned int s = 0; s < sample_count; s++) {
-          const float u = ((float)x + (float)(rand()) / (float)(RAND_MAX)) / image_width;
-          const float v = ((float)y + (float)(rand()) / (float)(RAND_MAX)) / image_height;
+        for (unsigned int s = 0; s < sample_count; s++) {
+          const float u = ((float)x + randf(rng)) * inv_image_width;
+          const float v = ((float)y + randf(rng)) * inv_image_height;
           const Vec3 ray_direction = homogeneous_projection(inv_mvp * Vec4(2.0f * u - 1.0f, -2.0f * v + 1.0f, -near_plane, 1.0)) - camera_position;
           const Ray ray = Ray(camera_position, ray_direction);
 
@@ -325,7 +342,7 @@ void ray_trace_from_camera() {
 
     exec_phase(
       "Tone mapping",
-      [&](const size_t p_exec_index) -> void {
+      [&]([[maybe_unused]] const size_t p_thread_id, const size_t p_exec_index) -> void {
         image(p_exec_index) = tonemap_agx(image(p_exec_index));
       }
     );

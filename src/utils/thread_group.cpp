@@ -78,7 +78,7 @@ ThreadWorkGroup::ThreadWorkGroup(const size_t p_size)
 
         for (size_t i = 0; i < local_exec_count; i += 1) {
           const size_t exec_index = local_begin_index + i;
-          func(exec_index);
+          func(thread_id, exec_index);
 
           if (group_state != GroupState::WORKING) {
             break; // Cancel execution

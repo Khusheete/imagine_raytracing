@@ -8,7 +8,7 @@
 #include <vector>
 
 
-typedef std::function<void(size_t)> ParallelFunction;
+typedef std::function<void(size_t p_thread_id, size_t p_exec_index)> ParallelFunction;
 
 
 class ThreadWorkGroup {
