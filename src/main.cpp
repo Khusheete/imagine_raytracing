@@ -267,7 +267,7 @@ void ray_trace_from_camera() {
 
     // Create thread work group to do work
     const size_t available_thread_count = std::thread::hardware_concurrency();
-    size_t thread_count = (available_thread_count)? available_thread_count : 8;
+    const size_t thread_count = (available_thread_count)? available_thread_count : 8;
     std::cout << "Ray tracing a " << image_width << " x " << image_height << " image on " << thread_count << " threads" << std::endl;
     ThreadWorkGroup work_group(thread_count);
 
