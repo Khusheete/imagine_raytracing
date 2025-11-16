@@ -39,6 +39,7 @@
 #define SCENE_H
 
 #include <optional>
+#include <random>
 #include <vector>
 
 #include "geometry/ray.h"
@@ -58,15 +59,15 @@ public:
   void draw() const;
 
   RayIntersection compute_intersection(const Ray &p_ray) const;
-  kmath::Lrgb ray_trace_recursive(const Ray &p_ray, const int p_bounce_count = 4) const;
-  kmath::Lrgb ray_trace(const Ray &p_ray_start) const;
+  kmath::Lrgb ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int p_bounce_count = 4) const;
+  kmath::Lrgb ray_trace(std::mt19937 &p_rng, const Ray &p_ray_start) const;
   
   void setup_single_sphere();
   void setup_single_square();
   void setup_cornell_box();
 
 public:
-  kmath::Lrgb _intersection_get_color(const Ray &p_ray, const RayIntersection &p_intersection) const;
+  kmath::Lrgb _intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const RayIntersection &p_intersection) const;
   std::optional<const Material*> _intersection_get_material(const RayIntersection &p_intersection) const;
 };
 

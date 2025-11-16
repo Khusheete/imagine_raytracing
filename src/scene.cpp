@@ -37,9 +37,11 @@
 
 #include "scene.h"
 #include "geometry/ray.h"
-#include "light.hpp"
+#include "geometry/light.hpp"
 #include "material.h"
 #include <optional>
+#include <random>
+#include <variant>
 
 
 using namespace kmath;
@@ -72,7 +74,7 @@ RayIntersection Scene::compute_intersection(const Ray &p_ray) const {
 }
 
 
-Vec3 Scene::_intersection_get_color(const Ray &p_ray, const RayIntersection &p_intersection) const {
+Vec3 Scene::_intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const RayIntersection &p_intersection) const {
   switch (p_intersection.kind) {
   case RayIntersection::Kind::RAY_SPHERE: {
     const Sphere &sphere = spheres[p_intersection.element_id];
@@ -82,6 +84,7 @@ Vec3 Scene::_intersection_get_color(const Ray &p_ray, const RayIntersection &p_i
       rsph.normal,
       -p_ray.direction,
       0.1f * Lrgb::ONE,
+      p_rng,
       lights
     );
   }
@@ -93,6 +96,7 @@ Vec3 Scene::_intersection_get_color(const Ray &p_ray, const RayIntersection &p_i
       rsqu.normal,
       -p_ray.direction,
       0.1f * Lrgb::ONE,
+      p_rng,
       lights
     );
   }
@@ -124,7 +128,7 @@ std::optional<const Material*> Scene::_intersection_get_material(const RayInters
 }
 
 
-Lrgb Scene::ray_trace_recursive(const Ray &p_ray, const int p_bounce_count) const {
+Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int p_bounce_count) const {
   Lrgb color = Lrgb::ZERO;
   Ray ray = p_ray;
   float bounce_contribution = 1.0;
@@ -143,7 +147,8 @@ Lrgb Scene::ray_trace_recursive(const Ray &p_ray, const int p_bounce_count) cons
     Lrgb bounce_color = 0.1f * intersection_material.diffuse_material;
 
     for (const Light &light : lights) {
-      const Vec3 light_direction = light.pos - intersection_point;
+      const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
+      const Vec3 light_direction = light_position - intersection_point;
       const float light_distance = length(light_direction);
       const Ray light_ray = Ray(intersection_point, light_direction);
 
@@ -154,7 +159,7 @@ Lrgb Scene::ray_trace_recursive(const Ray &p_ray, const int p_bounce_count) cons
         continue;
       }
 
-      bounce_color += intersection_material.get_light_influence(intersection_point, intersection_normal, ray.direction, light);
+      bounce_color += intersection_material.get_light_influence(intersection_point, intersection_normal, ray.direction, light.data, light_position);
     }
 
     // Add bounce contribution
@@ -170,9 +175,9 @@ Lrgb Scene::ray_trace_recursive(const Ray &p_ray, const int p_bounce_count) cons
 }
 
 
-Lrgb Scene::ray_trace(const Ray &p_ray_start) const {
+Lrgb Scene::ray_trace(std::mt19937 &p_rng, const Ray &p_ray_start) const {
   RayIntersection inter = compute_intersection(p_ray_start);
-  return _intersection_get_color(p_ray_start, inter);
+  return _intersection_get_color(p_rng, p_ray_start, inter);
 }
 
 
@@ -204,12 +209,11 @@ void Scene::setup_single_sphere() {
   {
     lights.resize(lights.size() + 1);
     Light &light = lights[lights.size() - 1];
-    light.pos = Vec3(-5,5,5);
-    light.radius = 2.5f;
-    light.power_correction = 2.0f;
-    // light.type = LightType::SPHERICAL;
-    light.color = Lrgb::ONE;
-    light.energy = 20.0;
+    light.shape = UniformBallDistribution(Vec3(-5, 5, 5), 0.01f);
+    light.data.radius = 2.5f;
+    light.data.power_correction = 2.0f;
+    light.data.color = Lrgb::ONE;
+    light.data.energy = 8.0;
   }
   {
     spheres.resize(spheres.size() + 1);
@@ -233,12 +237,11 @@ void Scene::setup_single_square() {
   {
     lights.resize(lights.size() + 1);
     Light &light = lights[lights.size() - 1];
-    light.pos = Vec3(-5, 5, 5);
-    light.radius = 2.5f;
-    light.power_correction = 2.f;
-    // light.type = LightType::SPHERICAL;
-    light.color = Lrgb::ONE;
-    light.energy = 20.0;
+    light.shape = UniformBallDistribution(Vec3(-5, 5, 5), 0.01f);
+    light.data.radius = 2.5f;
+    light.data.power_correction = 2.f;
+    light.data.color = Lrgb::ONE;
+    light.data.energy = 8.0;
   }
   {
     squares.resize(squares.size() + 1);
@@ -260,12 +263,12 @@ void Scene::setup_cornell_box() {
   {
     lights.resize(lights.size() + 1);
     Light &light = lights[lights.size() - 1];
-    light.pos = Vec3(0.0, 1.5, 0.0);
-    light.radius = 2.5f;
-    light.power_correction = 2.f;
-    // light.type = LightType::SPHERICAL;
-    light.color = Lrgb::ONE;
-    light.energy = 20.0;
+    // light.shape = UniformBallDistribution(Vec3(0.0, 1.5, 0.0), 0.1f);
+    light.shape = PointDistribution(Vec3(0.0, 1.5, 0.0));
+    light.data.radius = 2.0f;
+    light.data.power_correction = 2.f;
+    light.data.color = Lrgb::ONE;
+    light.data.energy = 4.0;
   }
   { //Back Wall
     squares.resize(squares.size() + 1);
@@ -276,7 +279,7 @@ void Scene::setup_cornell_box() {
     s.build_arrays();
     s.material.diffuse_material  = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
     s.material.specular_material = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
   }
   { //Left Wall
     squares.resize(squares.size() + 1);
@@ -288,7 +291,7 @@ void Scene::setup_cornell_box() {
     s.build_arrays();
     s.material.diffuse_material = Vec3(1., 0., 0.);
     s.material.specular_material = Vec3(1., 0., 0.);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
   }
   { //Right Wall
     squares.resize(squares.size() + 1);
@@ -300,7 +303,7 @@ void Scene::setup_cornell_box() {
     s.build_arrays();
     s.material.diffuse_material = Vec3(0.0, 1.0, 0.0);
     s.material.specular_material = Vec3(0.0, 1.0, 0.0);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
   }
   { //Floor
     squares.resize(squares.size() + 1);
@@ -312,7 +315,7 @@ void Scene::setup_cornell_box() {
     s.build_arrays();
     s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
     s.material.specular_material = Vec3(1.0, 1.0, 1.0);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
   }
   { //Ceiling
     squares.resize(squares.size() + 1);
@@ -324,7 +327,7 @@ void Scene::setup_cornell_box() {
     s.build_arrays();
     s.material.diffuse_material = Vec3(0.0, 0.0, 1.0);
     s.material.specular_material = Vec3(0.0, 0.0, 1.0);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
   }
   { //Front Wall
     squares.resize(squares.size() + 1);
@@ -336,7 +339,7 @@ void Scene::setup_cornell_box() {
     s.build_arrays();
     s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
     s.material.specular_material = Vec3(1.0, 1.0, 1.0);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
   }
   { //GLASS Sphere
     spheres.resize(spheres.size() + 1);
@@ -347,7 +350,7 @@ void Scene::setup_cornell_box() {
     s.material.type = MaterialType::MIRROR;
     s.material.diffuse_material = Vec3(1., 0., 0.);
     s.material.specular_material = Vec3(1., 0., 0.);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
     s.material.transparency = 1.0;
     s.material.index_medium = 1.4;
   }
@@ -360,7 +363,7 @@ void Scene::setup_cornell_box() {
     s.material.type = MaterialType::GLASS;
     s.material.diffuse_material = Vec3(0., 1., 1.);
     s.material.specular_material = Vec3(0., 1., 1.);
-    s.material.shininess = 16;
+    s.material.shininess = 16.0;
     s.material.transparency = 0.;
     s.material.index_medium = 0.;
   }

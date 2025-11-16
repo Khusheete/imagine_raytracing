@@ -41,23 +41,26 @@
 using namespace kmath;
 
 
-Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &p_surface_normal, const Vec3 &p_camera_direction, const Light &p_light) const {
-  const Vec3 light_direction = normalized(p_light.pos - p_fragment_position);
+Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &p_surface_normal, const Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const {
+  const Vec3 light_direction = normalized(p_light_position - p_fragment_position);
   
   const float signed_light_direction = dot(p_surface_normal, light_direction);
 
   if (signed_light_direction > 0.0) {
-    const float light_distance = distance(p_light.pos, p_fragment_position);
-    const float light_attenuation = std::pow(1.0 / light_distance, p_light.power_correction);
+    const float light_distance = distance(p_light_position, p_fragment_position);
+    const float light_attenuation = std::min(
+      std::pow(p_light_data.radius / light_distance, p_light_data.power_correction),
+      1.0f
+    );
     
     const float diffuse_contrib = std::max(0.0f, signed_light_direction);
-    const Vec3 diffuse = light_attenuation * p_light.energy * diffuse_contrib * p_light.color;
+    const float diffuse = light_attenuation * p_light_data.energy * diffuse_contrib;
 
-    const Vec3 reflected_dir = 2.0f * signed_light_direction * p_surface_normal - light_direction;
+    const Vec3 reflected_dir = light_direction - 2.0f * signed_light_direction * p_surface_normal;
     const float specular_contrib = std::pow(std::max(0.0f, dot(p_camera_direction, reflected_dir)), shininess);
-    const Vec3 specular = light_attenuation * p_light.energy * specular_contrib * specular_material * p_light.color;
+    const float specular = light_attenuation * p_light_data.energy * specular_contrib;
 
-    return diffuse * diffuse_material + specular * specular_material;
+    return (diffuse * diffuse_material + specular * specular_material) * p_light_data.color;
   }
 
   return Lrgb::ZERO;

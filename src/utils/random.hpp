@@ -35,55 +35,82 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef MATERIAL_H
-#define MATERIAL_H
-
 #include "kmath/vector.hpp"
-#include "kmath/color.hpp"
-#include "geometry/light.hpp"
 
-#include <cmath>
 #include <random>
 
 
-enum class MaterialType : unsigned char {
-  DIFFUSE_BLINN_PHONG,
-  GLASS,
-  MIRROR
-};
-
-
-struct Material {
-public:
-  kmath::Lrgb diffuse_material = kmath::Lrgb::ONE;
-  kmath::Lrgb specular_material = kmath::Lrgb::ZERO;
-  double shininess = 1.0;
-
-  float index_medium = 0.0f;
-  float transparency = 0.0f;
-
-  MaterialType type = MaterialType::DIFFUSE_BLINN_PHONG;
+struct PointDistribution {
+  kmath::Vec3 position;
 
 public:
-  kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
-  
-  template<typename LightIt, std::uniform_random_bit_generator Rng>
-  kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
-    using namespace kmath;
-  
-    const Lrgb ambiant = diffuse_material * p_ambiant_energy;
-
-    Lrgb light_contribs = Lrgb::ZERO;
-    for (const Light &light : p_lights) {
-      const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
-      light_contribs += get_light_influence(p_fragment_position, p_surface_normal, p_camera_direction, light.data, light_position);
-    }
-
-    return ambiant + light_contribs;
+  template<std::uniform_random_bit_generator Rng>
+  kmath::Vec3 operator()([[maybe_unused]] Rng &p_rng) const {
+    return position;
   }
 };
 
 
+struct UniformCuboidDistribution {
+  kmath::Vec3 min;
+  kmath::Vec3 max;
+
+public:
+  template<std::uniform_random_bit_generator Rng>
+  kmath::Vec3 operator()([[maybe_unused]] Rng &p_rng) const {
+    return kmath::apply([&](const float x, const float y) -> float {
+      return std::uniform_real_distribution<float>(x, y)(p_rng);
+    }, min, max);
+  }
+};
 
 
-#endif // MATERIAL_H
+struct UniformCubeDistribution {
+  float min;
+  float max;
+
+public:
+  template<std::uniform_random_bit_generator Rng>
+  kmath::Vec3 operator()([[maybe_unused]] Rng &p_rng) const {
+    std::uniform_real_distribution distr(min, max);
+    return kmath::Vec3(
+      distr(p_rng),
+      distr(p_rng),
+      distr(p_rng)
+    );
+  }
+};
+
+
+struct UniformBallDistribution {
+  kmath::Vec3 position;
+  float radius;
+
+public:
+  template<std::uniform_random_bit_generator Rng>
+  kmath::Vec3 operator()(Rng &p_rng) const {
+    const float r2 = radius * radius;
+    UniformCubeDistribution distr(-radius, radius);
+    while (true) {
+      kmath::Vec3 vec = distr(p_rng);
+      if (kmath::length_squared(vec) < r2) {
+        return vec;
+      }
+    }
+  }
+};
+
+
+struct UniformRectangleDistribution {
+  kmath::Vec3 position;
+  kmath::Vec3 right_vector;
+  kmath::Vec3 up_vector;
+
+public:
+  template<std::uniform_random_bit_generator Rng>
+  kmath::Vec3 operator()(Rng &p_rng) const {
+    std::uniform_real_distribution distr(0.0f, 1.0f);
+    return position + distr(p_rng) * right_vector + distr(p_rng) * up_vector;
+  }
+};
+

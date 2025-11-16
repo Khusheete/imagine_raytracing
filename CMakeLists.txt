@@ -50,13 +50,13 @@ add_executable(raytracing
   src/main.cpp
   src/scene.cpp
   src/material.cpp
-  # src/light.cpp
 
   src/geometry/ray.cpp
   src/geometry/plane.cpp
   src/geometry/mesh.cpp
   src/geometry/sphere.cpp
   src/geometry/square.cpp
+  # src/light.cpp
 
   src/utils/gl_utils.cpp
   src/utils/drawing_primitives.cpp
