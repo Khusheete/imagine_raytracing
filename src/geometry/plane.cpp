@@ -54,6 +54,9 @@ float distance(const Vec3 &p_point, const Plane3 &p_plane) {
 
 std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
   const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
+  // The intersection point of the ray and the plane is the meet (outer product) of
+  // the line and the plane (in 3D PGA). It is the trivector representing the
+  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
   const Point3 inter = meet(line, p_plane);
   if (inter.e123 > -0.001) {
     // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
