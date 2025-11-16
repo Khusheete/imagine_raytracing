@@ -77,11 +77,45 @@ L'image obtenue n'est pas très belle... Il y a beaucoup de zones avec des coule
 == Quête secondaire 2: Parallélisme
 
 
-Au fur et à mesure que des fonctionnalités sont ajoutés, les images prennent de plus en plus de temps à être rendues. Pour des petites images (480x480), avec les rebonds, cela prend aux alentours de 19s 600ms, et cela va encore augmenter au cours du temps. J'ai déjà effectué quelques optimisations évidentes (diminution du nombre de division, précalculs de quelques valeurs, et retrait d'une inversion de matrice par pixel), mais le temps d'execution reste assez élevé. D'ailleurs, pour capturer l'image suivante, cela a pris 167s soit presque 3 minutes !
+Au fur et à mesure que des fonctionnalités sont ajoutés, les images prennent de plus en plus de temps à être rendues. Pour des petites images (480x480), avec les rebonds, cela prend aux alentours de 19s 600ms, et cela va encore augmenter au cours du temps. J'ai déjà effectué quelques optimisations évidentes (eg. retrait d'une inversion de matrice par pixel), mais le temps d'execution reste assez élevé. D'ailleurs, pour capturer l'image suivante, cela a pris 167s soit presque 3 minutes ! (Et encore, c'est avec un processeur relativement puissant !)
 
-#todo[Add image]
+#figure(
+ image("image_captures/phase2/big_image.png")
+)
 
 
-Le lancé de rayon est un algorithme fortement parallélisable, et en production, il est exclusivement tourné sur des cartes graphiques pour cette raison. Pour garder le rendu en c++ et éviter de devoir implémenter les structures d'accélération sur le GPU (car on ne peut pas utiliser les structures d'accéleration de Vulkan ou DirectX dans ce projet, car leurs implémentation est opaque), j'ai plutôt décidé de faire tourner le lancé de rayon sur plusieurs threads. Je le fais maintenant, comme ça je n'aurai pas à l'implémenter après avoir rajouté d'autres techniques plus complexes à faire. Cela permettra aussi de grandement diminuer la vitesse de debug des méthodes par la suite (car le temps de rendu est diminué).
+Heureusement, le lancé de rayon est un algorithme fortement parallélisable, et d'ailleurs, il est exclusivement tourné sur des cartes graphiques pour cette raison. Pour garder le rendu en c++ et éviter de devoir implémenter les structures d'accélération sur le GPU (car on ne peut pas utiliser les structures d'accéleration de Vulkan ou DirectX dans ce projet, car leurs implémentation est opaque), j'ai plutôt décidé de faire tourner le lancé de rayon sur plusieurs threads. Le faire maintenant permet d'avoir une implémentation sur plusieurs threads avant d'implémenter des techniques de rendu et de post-processing complexes.
 
-#todo[Add numbers]
+#figure(
+ caption: [Temps de rendu avant et après l'implémentation de multithreading (avec 32 thread logiques sur le processeur)],
+ table(
+  columns: 3,
+  [], [Image 480x480], [Image 1880x1052],
+  [1 thread], [19.6s], [167s],
+  [2 threads], [9.6s], [81s],
+  [8 threads], [2.5s], [21.7s],
+  [32 threads], [$9 times 10^2$ ms], [6.8s],
+  [64 threads], [$9 times 10^2$ ms], [7.3s],
+ )
+)
+
+
+== Retour sur la quête principale: des ombres douces
+
+
+#figure(
+ caption: [Résultat jusque là (sans réflexions).],
+ image("image_captures/phase2/sharp_shadows.png", width: 50%),
+)
+
+
+#figure(
+ caption: [Avec des ombres douces. Les positions des lumières sont déterminées aléatoirement selon une distribution dans l'espace (ici: uniforme dans une boule ouverte). Avec seulement 50 échantillons, la frontière de l'ombre est bruitée.],
+ image("image_captures/phase2/fuzzy_shadows.png", width: 50%),
+)
+
+
+#figure(
+ caption: [Ombres douces avec 5000 échantillons. Il n'y a plus de bruit d'image. Prendre autant d'achantillons, puisque cela multiplie le temps de calcul par 100.],
+ image("image_captures/phase2/fuzzy_shadows_5000_samples.png", width: 50%),
+)
