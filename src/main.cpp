@@ -546,22 +546,29 @@ void resized([[maybe_unused]] GLFWwindow *p_window, int width, int height) {
 
 
 void print_help() {
-  // TODO: change :)
-  std::cerr << std::endl
-    << "gMini: a minimal OpenGL/GLUT application" << std::endl
-    << "for 3D graphics." << std::endl
-    << "Author : Tamy Boubekeur (http://www.labri.fr/~boubek)" << std::endl << std::endl
-    << "Usage : ./gmini [<file.off>]" << std::endl
-    << "Keyboard commands" << std::endl
-    << "------------------" << std::endl
-    << " ?: Print help" << std::endl
-    << " w: Toggle Wireframe Mode" << std::endl
-    << " g: Toggle Gouraud Shading Mode" << std::endl
-    << " f: Toggle full screen mode" << std::endl
-    << " <drag>+<left button>: rotate model" << std::endl
-    << " <drag>+<right button>: move model" << std::endl
-    << " <drag>+<middle button>: zoom" << std::endl
-    << " q, <esc>: Quit" << std::endl << std::endl;
+  std::cout
+    << "                                   /\\                    ^__       \n"
+    << "  \e[1mPathtracing Project\e[0m             /#*\\  /\\              /##@>      \n"
+    << "                                 <#* *> \\/         _^_  \\\\    _^_  \n"
+    << "                                  \\##/            /###\\ \\è\\  /###\\ \n"
+    << "                                   \\/ /\\         /#####n/xx\\n#####\\\n"
+    << "    © Ferdinand                       \\/         \\###^##xXXx##^###/\n"
+    << "           Souchet                                \\#/ V¨\\xx/¨V \\#/ \n"
+    << "        (aka. @Khusheete)                          V     \\c\\    V  \n"
+    << "                                                          //       \n"
+    << "                                                        \\o/        \n"
+    << "ferdinand.souchet@etu.umontpellier.fr                    v         \n"
+    << "\n"
+    << "Keyboard commands\n"
+    << "------------------\n"
+    << " ?: Print help\n"
+    << " w: Toggle Wireframe Mode\n"
+    << " n: Go to the next scene\n"
+    << " right click: rotate the camera\n"
+    << " z q s d: move the camera around\n"
+    << " r: render image using path tracing\n"
+    << " q, <esc>: Quit\n"
+    << std::endl; // Put std::endl only once, as it flushes the buffer
 }
 
 
