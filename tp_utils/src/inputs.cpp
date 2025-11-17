@@ -35,90 +35,65 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef MESH_H
-#define MESH_H
+#include "inputs.hpp"
+
+#include "thirdparty/kmath/vector.hpp"
+#include "thirdparty/kmath/utils.hpp"
+
+#include <GLFW/glfw3.h>
+
+using namespace kmath;
+
+namespace tputils {
+  Vec3 get_input_direction(GLFWwindow *p_window, const int p_positive_x_key, const int p_negative_x_key, const int p_positive_y_key, const int p_negative_y_key, const int p_positive_z_key, const int p_negative_z_key) {
+    Vec3 direction;
+
+    if (p_positive_x_key != -1 && glfwGetKey(p_window, p_positive_x_key)) {
+      direction.x += 1.0f;
+    }
+    if (p_negative_x_key != -1 && glfwGetKey(p_window, p_negative_x_key)) {
+      direction.x -= 1.0f;
+    }
+
+    if (p_positive_y_key != -1 && glfwGetKey(p_window, p_positive_y_key)) {
+      direction.y += 1.0f;
+    }
+    if (p_negative_y_key != -1 && glfwGetKey(p_window, p_negative_y_key)) {
+      direction.y -= 1.0f;
+    }
+
+    if (p_positive_z_key != -1 && glfwGetKey(p_window, p_positive_z_key)) {
+      direction.z += 1.0f;
+    }
+    if (p_negative_z_key != -1 && glfwGetKey(p_window, p_negative_z_key)) {
+      direction.z -= 1.0f;
+    }
+
+    const float dir_len = length(direction);
+    if (!is_approx_zero(dir_len)) direction /= dir_len;
+
+    return direction;
+  }
+  
+
+  kmath::Vec2 get_mouse_position(GLFWwindow *p_window) {
+    double x, y;
+    glfwGetCursorPos(p_window, &x, &y);
+    return kmath::Vec2(x, y);
+  }
 
 
-#include <vector>
-#include <string>
-#include <cfloat>
-#include <cstdint>
-
-#include <GL/gl.h>
-
-#include "kmath/matrix.hpp"
-#include "kmath/vector.hpp"
-
-#include "ray.h"
-#include "material.h"
+  void set_mouse_position(GLFWwindow *p_window, const kmath::Vec2 &p_position) {
+    glfwSetCursorPos(p_window, p_position.x, p_position.y);
+  }
 
 
-
-// -------------------------------------------
-// Basic Mesh class
-// -------------------------------------------
-
-
-struct MeshVertex {
-  kmath::Vec3 position;
-  kmath::Vec3 normal;
-  kmath::Vec2 uv;
-};
+  void hide_mouse(GLFWwindow *p_window) {
+    glfwSetInputMode(p_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+  }
 
 
-struct MeshTriangle {
-  uint32_t a = 0, b = 0, c = 0;
-
-public:
-  inline unsigned int &operator[](unsigned int iv) { return *(&a + iv); }
-  inline unsigned int operator[](unsigned int iv) const { return *(&a + iv); }
-};
-
-
-
-
-class Mesh {
-public:
-  Material material;
-
-  void load_off(const std::string & filename);
-  void recompute_normals();
-  void center_and_scale_to_unit();
-  void scale_unit();
-
-  virtual void build_arrays();
-
-  void scale(const kmath::Vec3 &p_scale);
-  void rotate_x(const float p_angle);
-  void rotate_y(const float p_angle);
-  void rotate_z(const float p_angle);
-  virtual void translate(const kmath::Vec3 &p_translation);
-  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform);
-
-  void draw() const;
-
-  RayTriangleIntersection intersect(const Ray &p_ray) const;
-
-
-  virtual ~Mesh() = default;
-
-
-protected:
-  void build_positions_array();
-  void build_normals_array();
-  void build_UVs_array();
-  void build_triangles_array();
-
-
-protected:
-  std::vector<MeshVertex> vertices;
-  std::vector<MeshTriangle> triangles;
-
-  std::vector<float> positions_array;
-  std::vector<float> normals_array;
-  std::vector<float> uvs_array;
-  std::vector<unsigned int> triangles_array;
-};
-
-
-#endif
+  void show_mouse(GLFWwindow *p_window) {
+    glfwSetInputMode(p_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+  }
+}

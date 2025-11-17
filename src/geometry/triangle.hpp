@@ -35,35 +35,81 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef SQUARE_H
-#define SQUARE_H
-
-#include "mesh.h"
-
-#include "kmath/vector.hpp"
-
-#include <cmath>
+#pragma once
 
 
-class Square : public Mesh {
-public:
-  void set_quad(const kmath::Vec3 &p_bottom_left, const kmath::Vec3 &p_right_vector, const kmath::Vec3 &p_up_vector, const kmath::Vec2 &p_size = kmath::Vec2::ONE, const kmath::Vec2 &p_uv_min = kmath::Vec2::ZERO, const kmath::Vec2 &p_uv_max = kmath::Vec2::ZERO);
-  RaySquareIntersection intersect(const Ray &p_ray) const;
+#include "thirdparty/kmath/vector.hpp"
+// #include "ray.h"
+// #include "Plane.h"
 
-  virtual void translate(const kmath::Vec3 &p_translation) override;
-  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform) override;
 
-  Square();
-  Square(const kmath::Vec3 &p_bottom_left, const kmath::Vec3 &p_right_vector, const kmath::Vec3 &p_up_vector, const kmath::Vec2 &p_size = kmath::Vec2::ONE, const kmath::Vec2 &p_uv_min = kmath::Vec2::ZERO, const kmath::Vec2 &p_uv_max = kmath::Vec2::ZERO);
-  virtual ~Square() = default;
-
-private:
+struct Triangle {
+  kmath::Vec3 points[3];
   kmath::Vec3 normal;
-  kmath::Vec3 bottom_left;
-  kmath::Vec3 right_vector;
-  kmath::Vec3 up_vector;
-  kmath::Vec2 size;
+  float area;
 };
 
 
-#endif // SQUARE_H
+// class Triangle {
+// private:
+//     Vec3 m_c[3] , m_normal;
+//     float area;
+// public:
+//     Triangle() {}
+//     Triangle( Vec3 const & c0 , Vec3 const & c1 , Vec3 const & c2 ) {
+//         m_c[0] = c0;
+//         m_c[1] = c1;
+//         m_c[2] = c2;
+//         updateAreaAndNormal();
+//     }
+//     void updateAreaAndNormal() {
+//         Vec3 nNotNormalized = Vec3::cross( m_c[1] - m_c[0] , m_c[2] - m_c[0] );
+//         float norm = nNotNormalized.length();
+//         m_normal = nNotNormalized / norm;
+//         area = norm / 2.f;
+//     }
+//     void setC0( Vec3 const & c0 ) { m_c[0] = c0; } // remember to update the area and normal afterwards!
+//     void setC1( Vec3 const & c1 ) { m_c[1] = c1; } // remember to update the area and normal afterwards!
+//     void setC2( Vec3 const & c2 ) { m_c[2] = c2; } // remember to update the area and normal afterwards!
+//     Vec3 const & normal() const { return m_normal; }
+//     Vec3 projectOnSupportPlane([[maybe_unused]] Vec3 const & p ) const {
+//         Vec3 result;
+//         //TODO completer
+//         return result;
+//     }
+//     float squareDistanceToSupportPlane([[maybe_unused]] Vec3 const & p ) const {
+//         float result = 0.0f;
+//         //TODO completer
+//         return result;
+//     }
+//     float distanceToSupportPlane( Vec3 const & p ) const { return sqrt( squareDistanceToSupportPlane(p) ); }
+//     bool isParallelTo([[maybe_unused]] Line const & L ) const {
+//         bool result = false;
+//         //TODO completer
+//         return result;
+//     }
+//     Vec3 getIntersectionPointWithSupportPlane([[maybe_unused]] Line const & L ) const {
+//         // you should check first that the line is not parallel to the plane!
+//         Vec3 result;
+//         //TODO completer
+//         return result;
+//     }
+//     void computeBarycentricCoordinates([[maybe_unused]] Vec3 const & p ,[[maybe_unused]] float & u0 ,[[maybe_unused]] float & u1 ,[[maybe_unused]] float & u2 ) const {
+//         //TODO Complete
+//     }
+
+//     RayTriangleIntersection getIntersection([[maybe_unused]] Ray const & ray ) const {
+//         RayTriangleIntersection result;
+//         // 1) check that the ray is not parallel to the triangle:
+
+//         // 2) check that the triangle is "in front of" the ray:
+
+//         // 3) check that the intersection point is inside the triangle:
+//         // CONVENTION: compute u,v such that p = w0*c0 + w1*c1 + w2*c2, check that 0 <= w0,w1,w2 <= 1
+
+//         // 4) Finally, if all conditions were met, then there is an intersection! :
+
+//         return result;
+//     }
+// };
+

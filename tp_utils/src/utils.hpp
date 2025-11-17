@@ -35,55 +35,13 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef MATERIAL_H
-#define MATERIAL_H
-
-#include "kmath/vector.hpp"
-#include "kmath/color.hpp"
-#include "geometry/light.hpp"
-
-#include <cmath>
-#include <random>
+#pragma once
 
 
-enum class MaterialType : unsigned char {
-  DIFFUSE_BLINN_PHONG,
-  GLASS,
-  MIRROR
-};
+#include <filesystem>
+#include <string>
 
 
-struct Material {
-public:
-  kmath::Lrgb diffuse_material = kmath::Lrgb::ONE;
-  kmath::Lrgb specular_material = kmath::Lrgb::ZERO;
-  double shininess = 1.0;
-
-  float index_medium = 0.0f;
-  float transparency = 0.0f;
-
-  MaterialType type = MaterialType::DIFFUSE_BLINN_PHONG;
-
-public:
-  kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
-  
-  template<typename LightIt, std::uniform_random_bit_generator Rng>
-  kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
-    using namespace kmath;
-  
-    const Lrgb ambiant = diffuse_material * p_ambiant_energy;
-
-    Lrgb light_contribs = Lrgb::ZERO;
-    for (const Light &light : p_lights) {
-      const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
-      light_contribs += get_light_influence(p_fragment_position, p_surface_normal, p_camera_direction, light.data, light_position);
-    }
-
-    return ambiant + light_contribs;
-  }
-};
-
-
-
-
-#endif // MATERIAL_H
+namespace tputils {
+  std::string read_file(const std::filesystem::path &p_path);
+}

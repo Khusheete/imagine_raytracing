@@ -35,41 +35,87 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
-
-using namespace kmath;
+#pragma once
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
-}
+#include <vector>
+#include <string>
+#include <cfloat>
+#include <cstdint>
+
+#include <GL/gl.h>
+
+#include "thirdparty/kmath/matrix.hpp"
+#include "thirdparty/kmath/vector.hpp"
+
+#include "ray.hpp"
+#include "material.hpp"
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+
+// -------------------------------------------
+// Basic Mesh class
+// -------------------------------------------
 
 
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
-  }
-}
+struct MeshVertex {
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  kmath::Vec2 uv;
+};
 
 
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
-}
+struct MeshTriangle {
+  uint32_t a = 0, b = 0, c = 0;
+
+public:
+  inline unsigned int &operator[](unsigned int iv) { return *(&a + iv); }
+  inline unsigned int operator[](unsigned int iv) const { return *(&a + iv); }
+};
+
+
+
+
+class Mesh {
+public:
+  Material material;
+
+  void load_off(const std::string & filename);
+  void recompute_normals();
+  void center_and_scale_to_unit();
+  void scale_unit();
+
+  virtual void build_arrays();
+
+  void scale(const kmath::Vec3 &p_scale);
+  void rotate_x(const float p_angle);
+  void rotate_y(const float p_angle);
+  void rotate_z(const float p_angle);
+  virtual void translate(const kmath::Vec3 &p_translation);
+  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform);
+
+  void draw() const;
+
+  RayTriangleIntersection intersect(const Ray &p_ray) const;
+
+
+  virtual ~Mesh() = default;
+
+
+protected:
+  void build_positions_array();
+  void build_normals_array();
+  void build_UVs_array();
+  void build_triangles_array();
+
+
+protected:
+  std::vector<MeshVertex> vertices;
+  std::vector<MeshTriangle> triangles;
+
+  std::vector<float> positions_array;
+  std::vector<float> normals_array;
+  std::vector<float> uvs_array;
+  std::vector<unsigned int> triangles_array;
+};
+

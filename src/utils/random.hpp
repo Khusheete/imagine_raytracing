@@ -35,7 +35,7 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "kmath/vector.hpp"
+#include "thirdparty/kmath/vector.hpp"
 
 #include <random>
 

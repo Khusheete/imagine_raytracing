@@ -35,41 +35,140 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
-
-using namespace kmath;
+#pragma once
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
-}
+#include "thirdparty/kmath/color.hpp"
+#include <cstdint>
+#include <filesystem>
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+namespace tputils {
+
+    class Framebuffer;
 
 
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
-  }
-}
+    enum class TextureFormat {
+        R8, RG8, RGB8, RGBA8,
+        R16, RG16, RGB16, RGBA16,
+        R16F, RG16F, RGB16F, RGBA16F,
+        R32F, RG32F, RGB32F, RGBA32F,
+    };
 
 
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
+    class BaseTexture {
+    public:
+        virtual void bind(const uint32_t p_location = 0) const = 0;
+        virtual void unbind(const uint32_t p_location = 0) const = 0;
+        virtual bool is_valid() const = 0;
+        virtual uint32_t get_texture_id() const = 0;
+    };
+
+
+    class Texture2D : public BaseTexture {
+    public:
+        virtual void bind(const uint32_t p_location = 0) const override;
+        virtual void unbind(const uint32_t p_location = 0) const override;
+
+        virtual bool is_valid() const override;
+        virtual uint32_t get_texture_id() const override;
+
+        void resize(uint32_t p_width, uint32_t p_height);
+        void generate_mipmaps();
+
+        static Texture2D load(const std::filesystem::path &p_path);
+
+        Texture2D() = default;
+        Texture2D(int p_width, int p_height, TextureFormat p_format);
+        Texture2D(const void *p_data, int p_width, int p_height, TextureFormat p_format);
+        Texture2D(Texture2D &&p_other);
+        Texture2D &operator=(Texture2D &&p_other);
+        Texture2D(const Texture2D&) = delete;
+        Texture2D &operator=(const Texture2D&) = delete;
+        virtual ~Texture2D();
+
+    private:
+        void get_opengl_format(TextureFormat p_tex_format, uint32_t *p_internal_format, uint32_t *p_format);
+
+    private:
+        uint32_t texture_id = 0;
+        bool valid = false;
+
+        TextureFormat format;
+        uint32_t width, height;
+
+        friend Framebuffer;
+    };
+
+
+    class Sampler {
+    public:
+      enum class MinFilter {
+        NEAREST,
+        LINEAR,
+        NEAREST_MIPMAP_NEAREST,
+        NEAREST_MIPMAP_LINEAR,
+        LINEAR_MIPMAP_NEAREST,
+        LINEAR_MIPMAP_LINEAR,
+      };
+
+      enum class MagFilter {
+        NEAREST,
+        LINEAR,
+      };
+
+      enum class WrapMode {
+        CLAMP_TO_EDGE,
+        REPEAT,
+        MIRRORED_CLAMP_TO_EDGE,
+        MIRRORED_REPEAT,
+        CLAMP_TO_BORDER,
+      };
+
+      struct Sampler2DConfig {
+        MinFilter minification_filter;
+        MagFilter magnification_filer;
+        WrapMode x_wrap_mode = WrapMode::CLAMP_TO_EDGE;
+        WrapMode y_wrap_mode = WrapMode::CLAMP_TO_EDGE;
+        kmath::Rgba border_color = kmath::Rgba::ZERO;
+        float minimum_lod = -1000.0;
+        float maximum_lod =  1000.0;
+      };
+
+      struct Sampler3DConfig {
+        MinFilter minification_filter;
+        MagFilter magnification_filer;
+        WrapMode x_wrap_mode = WrapMode::CLAMP_TO_EDGE;
+        WrapMode y_wrap_mode = WrapMode::CLAMP_TO_EDGE;
+        WrapMode z_wrap_mode = WrapMode::CLAMP_TO_EDGE;
+        kmath::Rgba border_color = kmath::Rgba::ZERO;
+        float minimum_lod = -1000.0;
+        float maximum_lod =  1000.0;
+      };
+    
+    public:
+      void bind(const uint32_t p_location = 0) const;
+      void unbind(const uint32_t p_location = 0) const;
+
+      inline bool is_valid() const { return sampler_id != 0; }
+
+      void set_config(const Sampler2DConfig &p_config);
+      void set_config(const Sampler3DConfig &p_config);
+
+      static Sampler from_config(const Sampler2DConfig &p_config);
+      static Sampler from_config(const Sampler3DConfig &p_config);
+
+      Sampler() = default;
+      Sampler(Sampler &&p_other);
+      Sampler &operator=(Sampler &&p_other);
+      Sampler(const Sampler&) = delete;
+      Sampler &operator=(const Sampler&) = delete;
+      ~Sampler();
+
+    private:
+      uint32_t sampler_id = 0;
+
+      friend BaseTexture;
+      friend Texture2D;
+    };
 }

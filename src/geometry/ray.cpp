@@ -35,10 +35,10 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "ray.h"
+#include "ray.hpp"
 
-#include "kmath/print.hpp"
-#include "kmath/vector.hpp"
+#include "thirdparty/kmath/print.hpp"
+#include "thirdparty/kmath/vector.hpp"
 #include <limits>
 
 

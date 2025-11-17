@@ -35,9 +35,9 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "sphere.h"
+#include "sphere.hpp"
 
-#include "kmath/angles.hpp"
+#include "thirdparty/kmath/angles.hpp"
 
 
 void Sphere::build_arrays() {

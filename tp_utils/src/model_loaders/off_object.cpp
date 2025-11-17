@@ -35,41 +35,68 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
+#include "off_object.hpp"
+
+#include "debug.hpp"
+#include "rendering/primitives/shader.hpp"
+#include "rendering/primitives/vbuffer.hpp"
+
+#include <array>
+#include <fstream>
+#include <vector>
+
 
 using namespace kmath;
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
-}
+namespace tputils {
+  OffObject OffObject::load(const std::filesystem::path &p_path, const bool p_load_normals) {
+    ASSERT_FATAL_ERROR(!p_load_normals, "Loading normals in OFF files is not supported yet.");
 
+    std::ifstream file(p_path);
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+    {
+      std::string magic;
+      file >> magic;
+      if (magic.compare("OFF")) {
+        LOG_WARNING("File `" << p_path << "` is not an OFF object");
+        return {};
+      }
+    }
 
+    size_t vertex_count, face_count, edge_count;
+    file >> vertex_count >> face_count >> edge_count;
+    
+    // Setup
+    OffObject result;
+    result.positions.reserve(vertex_count);
+    // if (p_load_normals) {
+    //   result.normals.reserve(vertex_count);
+    // }
+    result.tris.reserve(face_count);
+    
+    // Load vertices
+    for (size_t i = 0; i < vertex_count; i++) {
+      float x, y, z;
+      file >> x >> y >> z;
+      result.positions.emplace_back(x, y, z);
+    }
 
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
+    // Load faces
+    for (size_t i = 0; i < face_count; i++) {
+      uint32_t element_count, a, b, c;
+      file >> element_count;
+
+      if (element_count != 3) [[unlikely]] {
+        LOG_WARNING("Encountered unsupported " << element_count << "-gon while loading OFF file: `" << p_path << "`");
+        return {};
+      }
+
+      file >> a >> b >> c;
+      result.tris.emplace_back(a, b, c);
+    }
+
+    return result;
   }
 }
 
-
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
-}

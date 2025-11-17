@@ -36,8 +36,8 @@
 
 
 #include "camera.hpp"
-#include "kmath/motor_3d.hpp"
-#include "kmath/rotor_3d.hpp"
+#include "thirdparty/kmath/motor_3d.hpp"
+#include "thirdparty/kmath/rotor_3d.hpp"
 
 
 void FreeCamera::local_translate(const kmath::Vec3 &p_delta) {

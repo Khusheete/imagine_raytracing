@@ -35,14 +35,14 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "square.h"
+#include "square.hpp"
 
-#include "kmath/vector.hpp"
-#include "plane.h"
+#include "thirdparty/kmath/vector.hpp"
+#include "thirdparty/kmath/euclidian_flat_3d.hpp"
 
-#include "kmath/euclidian_flat_3d.hpp"
+#include "plane.hpp"
+
 #include <optional>
-#include <pthread.h>
 
 
 using namespace kmath;

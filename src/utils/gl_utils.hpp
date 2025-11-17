@@ -38,7 +38,7 @@
 #pragma once
 
 
-#include "kmath/matrix.hpp"
+#include "thirdparty/kmath/matrix.hpp"
 
 
 kmath::Mat4 get_modelview_matrixf();

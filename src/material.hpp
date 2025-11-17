@@ -35,41 +35,51 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
+#pragma once
 
-using namespace kmath;
+#include "thirdparty/kmath/vector.hpp"
+#include "thirdparty/kmath/color.hpp"
+#include "geometry/light.hpp"
 
-
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
-}
+#include <cmath>
+#include <random>
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+enum class MaterialType : unsigned char {
+  DIFFUSE_BLINN_PHONG,
+  GLASS,
+  MIRROR
+};
 
 
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
+struct Material {
+public:
+  kmath::Lrgb diffuse_material = kmath::Lrgb::ONE;
+  kmath::Lrgb specular_material = kmath::Lrgb::ZERO;
+  double shininess = 1.0;
+
+  float index_medium = 0.0f;
+  float transparency = 0.0f;
+
+  MaterialType type = MaterialType::DIFFUSE_BLINN_PHONG;
+
+public:
+  kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
+  
+  template<typename LightIt, std::uniform_random_bit_generator Rng>
+  kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
+    using namespace kmath;
+  
+    const Lrgb ambiant = diffuse_material * p_ambiant_energy;
+
+    Lrgb light_contribs = Lrgb::ZERO;
+    for (const Light &light : p_lights) {
+      const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
+      light_contribs += get_light_influence(p_fragment_position, p_surface_normal, p_camera_direction, light.data, light_position);
+    }
+
+    return ambiant + light_contribs;
   }
-}
+};
 
 
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
-}

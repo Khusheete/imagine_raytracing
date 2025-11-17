@@ -35,41 +35,97 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
-
-using namespace kmath;
+#pragma once
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
-}
+#include "texture.hpp"
+
+#include <cstdint>
+#include <ranges>
+#include <vector>
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+namespace tputils {
+
+  class Framebuffer;
 
 
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
-  }
-}
+  class RenderBufferObject {
+    public:
+      enum class RenderBufferFormat {
+        RED, RG, RGB, RGBA, DEPTH_STENSIL,
+      };
+
+    public:
+      void bind() const;
+      void unbind() const;
+
+      void set_size(int32_t p_width, int32_t p_height);
+
+      RenderBufferObject() = default;
+      RenderBufferObject(uint32_t p_width, uint32_t p_height, RenderBufferFormat p_format);
+      RenderBufferObject(const RenderBufferObject &p_other) = delete;
+      RenderBufferObject(RenderBufferObject &&p_other);
+      RenderBufferObject &operator=(RenderBufferObject &&p_other);
+      ~RenderBufferObject();
+    
+    private:
+      uint32_t get_internal_format() const;
+
+    private:
+      uint32_t buffer_id = 0;
+      RenderBufferFormat format;
+
+      friend Framebuffer;
+  };
 
 
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
+  class Framebuffer {
+    public:
+      void bind() const;
+      void unbind() const;
+
+      bool is_complete() const;
+
+      inline uint32_t get_width() const { return width; }
+      inline uint32_t get_height() const { return height; }
+
+      inline size_t get_attachment_count() { return texture_attachments.size(); }
+      const Texture2D &get_texture_attachment(int p_index);
+
+      void set_size(uint32_t p_width, uint32_t p_height);
+
+      Framebuffer() = default;
+
+      template<typename Iterable>
+      requires std::ranges::sized_range<Iterable>
+      Framebuffer(uint32_t p_width, uint32_t p_height, const Iterable &p_texture_formats)
+        : width(p_width),
+        height(p_height),
+        depth_stensil_attachment(p_width, p_height, RenderBufferObject::RenderBufferFormat::DEPTH_STENSIL)
+      {
+        const size_t tex_count = p_texture_formats.size();
+        texture_attachments.reserve(tex_count);
+        for (const TextureFormat &format : p_texture_formats) {
+          texture_attachments.emplace_back(p_width, p_height, format);
+        }
+
+        _init();
+      }
+
+      Framebuffer(const Framebuffer &p_other) = delete;
+      Framebuffer(Framebuffer &&p_other);
+      Framebuffer &operator=(Framebuffer &&p_other);
+      ~Framebuffer();
+
+    private:
+      void _init();
+
+    private:
+      uint32_t buffer_id = 0;
+      uint32_t width, height;
+
+      std::vector<Texture2D> texture_attachments;
+      RenderBufferObject depth_stensil_attachment;
+  };
 }

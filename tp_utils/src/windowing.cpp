@@ -35,42 +35,41 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef SCENE_H
-#define SCENE_H
-
-#include <optional>
-#include <random>
-#include <vector>
-
-#include "geometry/ray.h"
-#include "geometry/mesh.h"
-#include "geometry/sphere.h"
-#include "geometry/square.h"
-#include "material.h"
+#include "windowing.hpp"
+#include <GLFW/glfw3.h>
 
 
-class Scene {
-  std::vector<Mesh> meshes;
-  std::vector<Sphere> spheres;
-  std::vector<Square> squares;
-  std::vector<Light> lights;
-
-public:
-  void draw() const;
-
-  RayIntersection compute_intersection(const Ray &p_ray) const;
-  kmath::Lrgb ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int p_bounce_count = 4) const;
-  kmath::Lrgb ray_trace(std::mt19937 &p_rng, const Ray &p_ray_start) const;
-  
-  void setup_single_sphere();
-  void setup_single_square();
-  void setup_cornell_box();
-
-public:
-  kmath::Lrgb _intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const RayIntersection &p_intersection) const;
-  std::optional<const Material*> _intersection_get_material(const RayIntersection &p_intersection) const;
-};
+namespace tputils {
+  GLFWContext init_glfw() {
+    return GLFWContext(glfwInit());
+  }
 
 
+  GLFWwindow *init_window(const char *p_title) {
+    glfwWindowHint(GLFW_RESIZABLE, true);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    GLFWwindow *window = glfwCreateWindow(800, 800, p_title, nullptr, nullptr);
 
-#endif // #ifndef SCENE_H
+    if (!window) {
+      return nullptr;
+    }
+
+    glfwMakeContextCurrent(window);
+    return window;
+  }
+
+
+  kmath::Vec2i get_window_size(GLFWwindow *p_window) {
+    kmath::Vec2i result;
+    glfwGetWindowSize(p_window, &result.x, &result.y);
+    return result;
+  }
+
+
+  kmath::Vec2 get_window_sizef(GLFWwindow *p_window) {
+    kmath::Vec2i size = get_window_size(p_window);
+    return kmath::Vec2(size.x, size.y);
+  }
+}

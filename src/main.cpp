@@ -50,10 +50,12 @@
 
 #include <GLFW/glfw3.h>
 
-#include "kmath/constants.hpp"
-#include "kmath/vector.hpp"
+#include "thirdparty/kmath/constants.hpp"
+#include "thirdparty/kmath/vector.hpp"
+
+#include "scene.hpp"
+
 #include "utils/camera.hpp"
-#include "scene.h"
 #include "utils/drawing_primitives.hpp"
 #include "utils/gl_utils.hpp"
 #include "utils/image.hpp"

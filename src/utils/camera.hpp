@@ -38,8 +38,8 @@
 #pragma once
 
 
-#include "kmath/rotor_3d.hpp"
-#include "kmath/vector.hpp"
+#include "thirdparty/kmath/rotor_3d.hpp"
+#include "thirdparty/kmath/vector.hpp"
 
 
 struct FreeCamera {

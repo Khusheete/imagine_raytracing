@@ -35,29 +35,25 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef Sphere_H
-#define Sphere_H
+#include "utils.hpp"
 
-#include "kmath/vector.hpp"
-#include "mesh.h"
-#include <cmath>
+#include <fstream>
+#include <vector>
 
+namespace tputils {
+  std::string read_file(const std::filesystem::path &p_path) {
+    std::ifstream ifs(p_path, std::ios::binary | std::ios::ate);
+    std::ifstream::pos_type pos = ifs.tellg();
 
+    if (pos <= 0) {
+        return "";
+    }
 
-class Sphere : public Mesh {
-public:
-  kmath::Vec3 center;
-  float radius;
+    std::vector<char> result(pos);
 
-  virtual void build_arrays() override;
-  virtual void translate(const kmath::Vec3 &p_translation) override;
-  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform) override;
-  RaySphereIntersection intersect(const Ray &p_ray) const;
+    ifs.seekg(0, std::ios::beg);
+    ifs.read(&result[0], pos);
 
-  Sphere();
-  Sphere(const kmath::Vec3 &p_center, const float r);
-  virtual ~Sphere() = default;
-};
-
-
-#endif
+    return std::string(result.begin(), result.end());
+  }
+}

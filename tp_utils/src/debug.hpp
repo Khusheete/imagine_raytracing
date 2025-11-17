@@ -35,41 +35,36 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
+#pragma once
 
-using namespace kmath;
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <sstream>
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
+#define CSI_BOLD "\e[1m"
+#define CSI_YELLOW "\e[38;2;180;180;20m"
+#define CSI_RED "\e[38;2;220;50;50m"
+#define CSI_CLEAR "\e[0m"
+
+
+#define LOG_WARNING(warning) std::cerr << CSI_YELLOW << CSI_BOLD << "[WARNING] " << CSI_CLEAR << CSI_YELLOW << warning << CSI_CLEAR << std::endl
+#define LOG_ERROR(error) std::cerr << CSI_RED << CSI_BOLD << "[ERROR] " << CSI_CLEAR << CSI_RED << error << CSI_CLEAR << std::endl
+
+
+#define ASSERT_FATAL_ERROR(predicate, error_str)                        \
+if (!(predicate)) {                                                     \
+    std::stringstream error;                                            \
+    error << "Assertion `" << #predicate << "` failed: " << error_str;  \
+    LOG_ERROR(error.str());                                             \
+    throw std::runtime_error(error.str());                              \
 }
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
-
-
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
-  }
-}
-
-
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
+#define ASSERT_WARNING(predicate, warning_str)                              \
+if (!(predicate)) {                                                         \
+    std::stringstream error;                                                \
+    error << "Assertion `" << #predicate << "` failed: " << warning_str;    \
+    LOG_WARNING(error.str());                                               \
 }

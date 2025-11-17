@@ -38,7 +38,7 @@
 #pragma once
 
 
-#include "kmath/color.hpp"
+#include "thirdparty/kmath/color.hpp"
 #include <ostream>
 #include <vector>
 

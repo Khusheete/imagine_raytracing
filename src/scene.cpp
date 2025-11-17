@@ -35,10 +35,10 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "scene.h"
-#include "geometry/ray.h"
+#include "scene.hpp"
+#include "geometry/ray.hpp"
 #include "geometry/light.hpp"
-#include "material.h"
+#include "material.hpp"
 #include <optional>
 #include <random>
 #include <variant>

@@ -35,41 +35,86 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
-
-using namespace kmath;
+#pragma once
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
-}
+#include "thirdparty/kmath/vector.hpp"
+
+#include <filesystem>
+#include <map>
+#include <string>
+#include <vector>
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+namespace tputils {
+
+  struct WavefrontObject;
 
 
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
-  }
-}
+  struct WavefrontMaterial {
+    enum class IlluminationModel {
+      COLOR_ON_AMBIENT_OFF             = 0,
+      COLOR_ON_AMBIENT_ON              = 1,
+      HIGHLIGH_ON                      = 2,
+      RT_REFLECTION                    = 3,
+      RT_TRANSPARENCY_REFLECTION       = 4,
+      RT_FRESNEL_REFLECTION            = 5,
+      RT_REFRACTION_REFLECTION         = 6,
+      RT_REFRACTION_FRESNEL_REFLECTION = 7,
+      REFLECTION                       = 8,
+      TRANSPARENCY_REFLECTION          = 9,
+      CAST_INVIS_SHADOW                = 10,
+    };
+
+    struct TextureMap {
+      std::filesystem::path path = "";
+      kmath::Vec3 origin_offset = kmath::Vec3(0.0, 0.0, 0.0);
+      kmath::Vec3 scale = kmath::Vec3(1.0, 1.0, 1.0);
+    };
+
+    IlluminationModel illumination_model;
+
+    kmath::Vec3 ambient_color;
+    kmath::Vec3 diffuse_color;
+    kmath::Vec3 specular_color;
+    float specular_exponent;
+
+    float dissolve;
+    kmath::Vec3 transmission_filter_color;
+    float index_of_refraction;
+
+    TextureMap ambient_texture;
+    TextureMap diffuse_texture;
+    TextureMap specular_texture;
+    TextureMap specular_exponent_texture;
 
 
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
+    bool has_ambient_texture() const;
+    bool has_diffuse_texture() const;
+    bool has_specular_texture() const;
+    bool has_specular_exponent_texture() const;
+  };
+
+
+  struct WavefrontObject {
+    std::string material;
+    std::vector<uint32_t> position_indices;
+    std::vector<uint32_t> uv_indices;
+    std::vector<uint32_t> normal_indices;
+  };
+
+
+  struct WavefrontMesh {
+    std::vector<kmath::Vec3> positions;
+    std::vector<kmath::Vec2> uvs;
+    std::vector<kmath::Vec3> normals;
+    std::map<std::string, WavefrontObject> objects;
+    std::map<std::string, WavefrontMaterial> materials;
+
+    static WavefrontMesh load(const std::filesystem::path &p_path);
+  
+  private:
+    void _include_materials(const std::filesystem::path &p_path);
+  };
+
 }

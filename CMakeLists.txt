@@ -17,6 +17,9 @@ add_library(build_options INTERFACE)
 target_compile_features(build_options INTERFACE
   cxx_std_20
 )
+target_include_directories(build_options INTERFACE
+  "${PROJECT_SOURCE_DIR}"
+)
 
 set(gcc_like_cxx "$<COMPILE_LANG_AND_ID:CXX,Clang,GNU>")
 if(NOT gcc_like_cxx)
@@ -42,7 +45,8 @@ endif()
 
 
 # == Build libraries ==
-add_subdirectory(kmath/)
+add_subdirectory(thirdparty/)
+add_subdirectory(tp_utils/)
 
 
 # == Build and configure libs ==

@@ -35,22 +35,82 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#ifndef PLANE_H
-#define PLANE_H
-
-#include <optional>
-
-#include "kmath/euclidian_flat_3d.hpp"
-#include "kmath/vector.hpp"
-#include "ray.h"
+#pragma once
 
 
-kmath::Vec3 project(const kmath::Vec3 &p_point, const kmath::Plane3 &p_plane);
+#include <cstdint>
+#include <filesystem>
+#include <limits>
+#include <variant>
+#include <vector>
+#include <unordered_map>
+#include <set>
+#include <string>
 
-float distance(const kmath::Vec3 &p_point, const kmath::Plane3 &p_plane);
 
-std::optional<kmath::Vec3> get_intersection(const Ray &p_ray, const kmath::Plane3 &p_plane);
-bool are_parallel(const Ray &p_ray, const kmath::Plane3 &p_plane);
+namespace tputils {
 
 
-#endif // #ifndef PLANE_H
+  class SourceFile {
+  public:
+
+    inline bool has_error() const { return !error.empty(); }
+    inline const std::string &get_error() const { return error; }
+
+    std::string get_section_text(const std::string &p_name) const;
+
+    template<typename Iter>
+    std::string get_section_text(const std::string &p_name, const Iter &p_defined) const {
+      std::set<VariableId> defined;
+      for (const std::string &var : p_defined) {
+        if (variables.contains(var)) {
+          defined.insert(variables.at(var));
+        }
+      }
+
+      return _get_section_text(p_name, defined);
+    }
+    bool has_section(const std::string &p_name) const;
+    inline size_t get_section_count() const { return sections.size(); }
+
+    SourceFile(const std::filesystem::path &p_path);
+
+  private:
+    typedef size_t VariableId;
+    static constexpr VariableId VARIABLE_NONE = std::numeric_limits<size_t>::max();
+    
+    struct PreprocIfDef {
+      VariableId variable = VARIABLE_NONE; // If this is a variable none
+      size_t otherwise_index;
+      enum class Kind : uint8_t {
+        IF_NDEF   = 0b00,
+        IF_DEF    = 0b01,
+        ELSE      = 0b10,
+        ELSE_NDEF = ELSE | IF_NDEF,
+        ELSE_DEF  = ELSE | IF_DEF,
+      } kind;
+    };
+
+    struct PreprocDefine {
+      VariableId variable;
+    };
+
+    typedef std::variant<PreprocIfDef, PreprocDefine, std::string> SectionToken;
+
+    typedef std::vector<SectionToken> Section;
+
+  private:
+    VariableId _get_or_add_variable_id(const std::string &p_variable_name);
+    std::string _get_section_text(const Section *p_section, std::set<VariableId> &p_defined) const;
+    std::string _get_section_text(const std::string &p_name, std::set<VariableId> &p_defined) const;
+
+  private:
+    Section header;
+    std::unordered_map<std::string, Section> sections;
+    std::unordered_map<std::string, VariableId> variables;
+    VariableId next_var_id = 0;
+
+    std::string error;
+  };
+}
+

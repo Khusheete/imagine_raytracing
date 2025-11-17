@@ -35,41 +35,104 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "plane.hpp"
-
-using namespace kmath;
+#pragma once
 
 
-Vec3 project(const Vec3 &p_point, const Plane3 &p_plane) {
-  return as_vector(
-    fast_project(Point3::point(p_point), p_plane)
-  );
+#include <cmath>
+#include <ostream>
+
+#include "thirdparty/kmath/vector.hpp"
+
+
+struct RaySphereIntersection {
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  float distance;
+  bool exists = false;
+  float polar, azimuth;
+};
+
+
+struct RayTriangleIntersection {
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  float distance;
+  bool exists = false;
+  kmath::Vec3 barycentric[3];
+};
+
+
+struct RaySquareIntersection {
+  kmath::Vec3 position;
+  kmath::Vec3 normal;
+  float distance;
+  bool exists = false;
+  kmath::Vec2 uv;
+};
+
+
+struct RayIntersection {
+public:
+  union PolyIntersection {
+    RaySphereIntersection rsph;
+    RayTriangleIntersection rtri;
+    RaySquareIntersection rsqu;
+
+    struct Common {
+      kmath::Vec3 position;
+      kmath::Vec3 normal;
+      float distance;
+      bool exists = false;
+    } common;
+
+
+    PolyIntersection(RaySphereIntersection p_rsph);
+    PolyIntersection(RayTriangleIntersection p_rsph);
+    PolyIntersection(RaySquareIntersection p_rsph);
+    PolyIntersection();
+  } intersection;
+
+  size_t element_id;
+
+  enum class Kind : unsigned char {
+    NONE,
+    RAY_SPHERE,
+    RAY_TRIANGLE,
+    RAY_SQUARE,
+  } kind = Kind::NONE;
+
+
+public:
+  static RayIntersection from(RaySphereIntersection p_rsph);
+  static RayIntersection from(RayTriangleIntersection p_rtri);
+  static RayIntersection from(RaySquareIntersection p_rsqu);
+};
+
+
+struct Ray {
+  kmath::Vec3 origin, direction;
+
+public:
+  Ray() = default;
+  Ray(const kmath::Vec3 &p_origin, const kmath::Vec3 &p_direction);
+
+  kmath::Vec3 get_moment() const;
+};
+
+
+// Project p_point onto p_line
+kmath::Vec3 project(const kmath::Vec3 &p_point, const Ray &p_ray); // TODO: implement
+// Reflect p_direction given the normal p_normal
+kmath::Vec3 reflect(const kmath::Vec3 &p_direction, const kmath::Vec3 &p_normal);
+
+// Returns the orthogonal distance between p_point and p_line
+float distance_squared(const kmath::Vec3 &p_point, const Ray &p_ray); // TODO: implement
+
+
+inline float distance(const kmath::Vec3 &p_point, const Ray &p_ray) {
+  return std::sqrt(distance_squared(p_point, p_ray));
 }
 
 
-float distance(const Vec3 &p_point, const Plane3 &p_plane) {
-  return std::abs(meet(Point3::point(p_point), p_plane));
-}
+std::ostream &operator<<(std::ostream &p_stream, const Ray &p_ray);
 
-
-std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  // The intersection point of the ray and the plane is the meet (outer product) of
-  // the line and the plane (in 3D PGA). It is the trivector representing the
-  // bundle (subspace) of planes that are contained both in `p_plane`, and in `line`.
-  const Point3 inter = meet(line, p_plane);
-  if (inter.e123 > -0.001) {
-    // The projective part of the intersection point must be negative (ie. the ray is pointing towards the plane),
-    // and not too close to zero (ie. the ray is parallel to the plane)
-    return std::optional<Vec3>();
-  } else {
-    return std::optional<Vec3>(as_vector(inter));
-  }
-}
-
-
-bool are_parallel(const Ray &p_ray, const Plane3 &p_plane) {
-  const Line3 plucker = Line3::line(p_ray.origin, p_ray.direction);
-  const Point3 inter = meet(plucker, p_plane);
-  return is_vanishing(inter);
-}

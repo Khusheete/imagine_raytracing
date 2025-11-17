@@ -37,8 +37,8 @@
 
 #pragma once
 
-#include "kmath/vector.hpp"
-#include "kmath/motor_3d.hpp"
+#include "thirdparty/kmath/vector.hpp"
+#include "thirdparty/kmath/motor_3d.hpp"
 
 #include <GL/gl.h>
 

@@ -35,8 +35,8 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include "mesh.h"
-#include "geometry/ray.h"
+#include "mesh.hpp"
+#include "geometry/ray.hpp"
 
 
 #include <iostream>
