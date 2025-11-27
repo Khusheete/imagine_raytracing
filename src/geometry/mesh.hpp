@@ -40,7 +40,6 @@
 
 #include <filesystem>
 #include <vector>
-#include <string>
 #include <cfloat>
 #include <cstdint>
 
@@ -93,8 +92,8 @@ public:
   void rotate_x(const float p_angle);
   void rotate_y(const float p_angle);
   void rotate_z(const float p_angle);
-  virtual void translate(const kmath::Vec3 &p_translation);
-  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform);
+  void translate(const kmath::Vec3 &p_translation);
+  void apply_transformation_matrix(const kmath::Mat3 &p_transform);
 
   void draw() const;
 
