@@ -63,10 +63,9 @@ add_executable(raytracing
   # src/light.cpp
 
   src/utils/gl_utils.cpp
-  src/utils/drawing_primitives.cpp
-  src/utils/camera.cpp
   src/utils/image.cpp
   src/utils/thread_group.cpp
+  src/utils/renderer.cpp
 )
 
 target_include_directories(raytracing PRIVATE
@@ -75,6 +74,6 @@ target_include_directories(raytracing PRIVATE
 
 target_link_libraries(raytracing PUBLIC
   build_options
-  kmath
-  glfw GL m pthread
+  kmath tputils
+  glfw glad GL m pthread
 )

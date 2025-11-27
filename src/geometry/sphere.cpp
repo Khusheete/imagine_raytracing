@@ -37,54 +37,6 @@
 
 #include "sphere.hpp"
 
-#include "thirdparty/kmath/angles.hpp"
-
-
-void Sphere::build_arrays() {
-  constexpr unsigned int polar_count = 20 , azimuth_count = 20;
-
-  positions_array.resize(3 * polar_count * azimuth_count);
-  normals_array.resize(3 * polar_count * azimuth_count);
-  uvs_array.resize(2 * polar_count * azimuth_count);
-
-  for (unsigned int polar_iterator = 0; polar_iterator < polar_count; ++polar_iterator) {
-    float u = 1.0f - (float)(polar_iterator) / (float)(polar_count-1);
-    float polar = u * M_PI;
-    for (unsigned int azimuth_iterator = 0; azimuth_iterator < azimuth_count; ++azimuth_iterator) {
-      unsigned int vertexIndex = polar_iterator + azimuth_iterator * polar_count;
-      float v = (float)(azimuth_iterator) / (float)(azimuth_count-1);
-      float azimuth = - M_PI + 2.0 * v * M_PI;
-
-      kmath::Vec3 xyz = kmath::spherical_to_cartesian(1.0f, polar, azimuth);
-
-      positions_array[3 * vertexIndex + 0] = center.x + radius * xyz.x;
-      positions_array[3 * vertexIndex + 1] = center.y + radius * xyz.y;
-      positions_array[3 * vertexIndex + 2] = center.z + radius * xyz.z;
-      normals_array[3 * vertexIndex + 0] = xyz.x;
-      normals_array[3 * vertexIndex + 1] = xyz.y;
-      normals_array[3 * vertexIndex + 2] = xyz.z;
-      uvs_array[2 * vertexIndex + 0] = u;
-      uvs_array[2 * vertexIndex + 1] = v;
-    }
-  }
-
-  triangles_array.clear();
-  for (unsigned int polar_iterator = 0; polar_iterator < polar_count - 1; ++polar_iterator) {
-    for (unsigned int azimuth_iterator = 0; azimuth_iterator < azimuth_count - 1; ++azimuth_iterator) {
-      unsigned int vertexuv = polar_iterator + azimuth_iterator * polar_count;
-      unsigned int vertexUv = polar_iterator + 1 + azimuth_iterator * polar_count;
-      unsigned int vertexuV = polar_iterator + (azimuth_iterator+1) * polar_count;
-      unsigned int vertexUV = polar_iterator + 1 + (azimuth_iterator+1) * polar_count;
-      triangles_array.push_back(vertexuv);
-      triangles_array.push_back(vertexUv);
-      triangles_array.push_back(vertexUV);
-      triangles_array.push_back(vertexuv);
-      triangles_array.push_back(vertexUV);
-      triangles_array.push_back(vertexuV);
-    }
-  }
-}
-
 
 RaySphereIntersection Sphere::intersect(const Ray &p_ray) const {
   RaySphereIntersection intersection;
@@ -121,19 +73,3 @@ RaySphereIntersection Sphere::intersect(const Ray &p_ray) const {
 }
 
 
-void Sphere::translate(const kmath::Vec3 &p_translation) {
-  center += p_translation;
-  Mesh::translate(p_translation);
-}
-
-
-void Sphere::apply_transformation_matrix(const kmath::Mat3 &p_transform) {
-  center = p_transform * center;
-  Mesh::apply_transformation_matrix(p_transform); // FIXME: Does not work for non uniform scaling
-}
-
-
-Sphere::Sphere(): Mesh() {}
-
- 
-Sphere::Sphere(const kmath::Vec3 &p_center, const float p_radius) : Mesh(), center(p_center), radius(p_radius) {}

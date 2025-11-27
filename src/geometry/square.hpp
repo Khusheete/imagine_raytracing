@@ -37,30 +37,37 @@
 
 #pragma once
 
-#include "mesh.hpp"
-
+#include "geometry/ray.hpp"
+#include "material.hpp"
+#include "thirdparty/kmath/matrix.hpp"
 #include "thirdparty/kmath/vector.hpp"
 
 #include <cmath>
 
 
-class Square : public Mesh {
-public:
-  void set_quad(const kmath::Vec3 &p_bottom_left, const kmath::Vec3 &p_right_vector, const kmath::Vec3 &p_up_vector, const kmath::Vec2 &p_size = kmath::Vec2::ONE, const kmath::Vec2 &p_uv_min = kmath::Vec2::ZERO, const kmath::Vec2 &p_uv_max = kmath::Vec2::ZERO);
-  RaySquareIntersection intersect(const Ray &p_ray) const;
-
-  virtual void translate(const kmath::Vec3 &p_translation) override;
-  virtual void apply_transformation_matrix(const kmath::Mat3 &p_transform) override;
-
-  Square();
-  Square(const kmath::Vec3 &p_bottom_left, const kmath::Vec3 &p_right_vector, const kmath::Vec3 &p_up_vector, const kmath::Vec2 &p_size = kmath::Vec2::ONE, const kmath::Vec2 &p_uv_min = kmath::Vec2::ZERO, const kmath::Vec2 &p_uv_max = kmath::Vec2::ZERO);
-  virtual ~Square() = default;
-
-private:
+struct Square {
+  Material material;
   kmath::Vec3 normal;
   kmath::Vec3 bottom_left;
   kmath::Vec3 right_vector;
   kmath::Vec3 up_vector;
   kmath::Vec2 size;
+  kmath::Vec2 uv_min;
+  kmath::Vec2 uv_max;
+
+public:
+  void set_quad(const kmath::Vec3 &p_bottom_left, const kmath::Vec3 &p_right_vector, const kmath::Vec3 &p_up_vector, const kmath::Vec2 &p_size = kmath::Vec2::ONE, const kmath::Vec2 &p_uv_min = kmath::Vec2::ZERO, const kmath::Vec2 &p_uv_max = kmath::Vec2::ZERO);
+  RaySquareIntersection intersect(const Ray &p_ray) const;
+
+  void translate(const kmath::Vec3 &p_translation);
+  void scale(const kmath::Vec3 &p_scale);
+  void rotate_x(const float p_angle);
+  void rotate_y(const float p_angle);
+  void rotate_z(const float p_angle);
+  void apply_transformation_matrix(const kmath::Mat3 &p_transform);
+
+  Square();
+  Square(const kmath::Vec3 &p_bottom_left, const kmath::Vec3 &p_right_vector, const kmath::Vec3 &p_up_vector, const kmath::Vec2 &p_size = kmath::Vec2::ONE, const kmath::Vec2 &p_uv_min = kmath::Vec2::ZERO, const kmath::Vec2 &p_uv_max = kmath::Vec2::ONE);
+  virtual ~Square() = default;
 };
 

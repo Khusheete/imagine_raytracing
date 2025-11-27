@@ -174,6 +174,22 @@ namespace tputils {
   }
 
 
+  void FreeCamera3D::update_position(const Vec3 &p_position_delta) {
+    const Mat3 basis = as_basis(rotation);
+    translate(basis * p_position_delta);
+  }
+
+
+  void FreeCamera3D::update_rotation(const Vec2 &p_rotation_delta) {
+    const Vec3 right = get_x_basis_vector(rotation);
+    
+    const Rotor3 vertical_rotate = Rotor3::from_axis_angle(right, -p_rotation_delta.y);
+    const Rotor3 horizontal_rotate = Rotor3::from_axis_angle(Vec3::Y, -p_rotation_delta.x);
+
+    rotation = normalized(horizontal_rotate * vertical_rotate * rotation);
+  }
+
+
   void TrackballCamera3D::set_target(const Vec3 &p_target) {
     target = p_target;
     _recompute_transformation();

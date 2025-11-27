@@ -246,6 +246,11 @@ namespace kmath {
     }
 
 
+    static inline _Mat3<T> scale(const _Vec3<T> &scale) {
+      return _Mat3<T>::scale(scale.x, scale.y, scale.z);
+    }
+
+
     static inline _Mat3<T> x_rotation(const T angle) {
       const T cos = std::cos(angle);
       const T sin = std::sin(angle);

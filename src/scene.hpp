@@ -64,6 +64,7 @@ public:
   void setup_single_sphere();
   void setup_single_square();
   void setup_cornell_box();
+  void setup_simple_mesh();
 
 public:
   kmath::Lrgb _intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const RayIntersection &p_intersection) const;

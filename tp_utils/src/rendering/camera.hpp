@@ -116,6 +116,8 @@ namespace tputils {
   class FreeCamera3D : public Camera3D {
   public:
 
+    void update_position(const kmath::Vec3 &p_position_delta);
+    void update_rotation(const kmath::Vec2 &p_rotation_delta);
     void update(const kmath::Vec3 &p_position_delta, const kmath::Vec2 &p_rotation_delta);
   };
 

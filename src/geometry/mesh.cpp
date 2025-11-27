@@ -37,12 +37,20 @@
 
 #include "mesh.hpp"
 #include "geometry/ray.hpp"
+#include "thirdparty/kmath/matrix.hpp"
+#include "tp_utils/src/debug.hpp"
+#include "tp_utils/src/model_loaders/wavefront_object.hpp"
+#include "tp_utils/src/rendering/immediate_geometry.hpp"
+#include "utils/renderer.hpp"
 
 
+#include <filesystem>
 #include <iostream>
 #include <fstream>
 
 #include <GL/gl.h>
+#include <unordered_map>
+#include <valarray>
 
 
 void Mesh::build_arrays() {
@@ -93,28 +101,98 @@ void Mesh::build_triangles_array() {
 }
 
 
-void Mesh::load_off(const std::string & filename) {
-  std::ifstream in(filename.c_str());
-  if (!in)
-    exit(EXIT_FAILURE);
-  std::string offString;
-  unsigned int sizeV, sizeT, tmp;
-  in >> offString >> sizeV >> sizeT >> tmp;
-  vertices.resize(sizeV);
-  triangles.resize(sizeT);
-  for (unsigned int i = 0; i < sizeV; i++) {
-    float x, y, z;
-    in >> x >> y >> z;
-    vertices[i].position = kmath::Vec3(x, y, z);
+void Mesh::load_obj(const std::filesystem::path &p_path) {
+  tputils::WavefrontMesh wavefront = tputils::WavefrontMesh::load(p_path);
+
+  // Create vertex data suited for single index buffer for positions, normals and uvs
+  positions_array.reserve(sizeof(wavefront.positions[0]) * wavefront.positions.size() / sizeof(float));
+  normals_array.reserve(sizeof(wavefront.normals[0]) * wavefront.positions.size() / sizeof(float));
+  uvs_array.reserve(sizeof(wavefront.uvs[0]) * wavefront.positions.size() / sizeof(float));
+  uint32_t vertex_count = 0;
+
+  std::unordered_map<uint64_t, uint32_t> index_map;
+
+  size_t object_index_buffer_size = 0;
+  std::vector<uint32_t> object_indices;
+
+  for (auto element : wavefront.objects) {
+    tputils::WavefrontObject object = element.second;
+
+    object_indices.reserve(object.position_indices.size());
+    object_index_buffer_size = 0;
+
+    // Build index buffer
+    for (size_t i = 0; i < object.position_indices.size(); i++) {
+      uint64_t position_index = object.position_indices[i];
+      uint64_t normal_index = object.normal_indices[i];
+      uint64_t uv_index = object.uv_indices[i];
+
+      // Assume that indices fit in a 16 bit number
+      uint64_t index_id = position_index + (normal_index << 0x10) + (uv_index << 0x20);
+
+      auto mapped_index = index_map.find(index_id);
+      if (mapped_index == index_map.end()) {
+        // Add the new vertex
+        kmath::Vec3 position = wavefront.positions[position_index];
+        kmath::Vec3 normal = wavefront.normals[normal_index];
+        kmath::Vec2 uv = wavefront.uvs[uv_index];
+        positions_array.push_back(position.x);
+        positions_array.push_back(position.y);
+        positions_array.push_back(position.z);
+        normals_array.push_back(normal.x);
+        normals_array.push_back(normal.y);
+        normals_array.push_back(normal.z);
+        uvs_array.push_back(uv.x);
+        uvs_array.push_back(uv.y);
+
+        if (object_indices.size() > object_index_buffer_size) {
+          object_indices[object_index_buffer_size] = vertex_count;
+        } else {
+          object_indices.push_back(vertex_count);
+        }
+        object_index_buffer_size += 1;
+
+        index_map[index_id] = vertex_count;
+        vertex_count += 1;
+      } else {
+        if (object_indices.size() > object_index_buffer_size) {
+          object_indices[object_index_buffer_size] = mapped_index->second;
+        } else {
+          object_indices.push_back(mapped_index->second);
+        }
+        object_index_buffer_size += 1;
+      }
+    }
+
+    // Create surfaces
+    for (size_t i = 0; i < object_index_buffer_size; i++) {
+      triangles_array.push_back(object_indices[i]);
+    }
   }
-  int s;
-  for (unsigned int i = 0; i < sizeT; i++) {
-    in >> s;
-    for (unsigned int j = 0; j < 3; j++)
-      in >> triangles[i][j];
-  }
-  in.close();
 }
+
+
+// void Mesh::load_off(const std::string &filename) {
+//   std::ifstream in(filename.c_str());
+//   ASSERT_FATAL_ERROR(in, "Cannot open file " << filename);
+//   std::string offString;
+//   unsigned int sizeV, sizeT, tmp;
+//   in >> offString >> sizeV >> sizeT >> tmp;
+//   vertices.resize(sizeV);
+//   triangles.resize(sizeT);
+//   for (unsigned int i = 0; i < sizeV; i++) {
+//     float x, y, z;
+//     in >> x >> y >> z;
+//     vertices[i].position = kmath::Vec3(x, y, z);
+//   }
+//   int s;
+//   for (unsigned int i = 0; i < sizeT; i++) {
+//     in >> s;
+//     for (unsigned int j = 0; j < 3; j++)
+//       in >> triangles[i][j];
+//   }
+//   in.close();
+// }
 
 
 void Mesh::recompute_normals() {
@@ -200,28 +278,55 @@ void Mesh::rotate_z(const float p_angle_degrees) {
 
 void Mesh::draw() const {
   if( triangles_array.size() == 0 ) return;
-  GLfloat material_color[4] = {material.diffuse_material.x,
-                               material.diffuse_material.y,
-                               material.diffuse_material.z,
-                               1.0};
-  GLfloat material_specular[4] = {material.specular_material.x,
-                                  material.specular_material.y,
-                                  material.specular_material.z,
-                                  1.0};
-  GLfloat material_ambient[4] = {material.diffuse_material.x,
-                                 material.diffuse_material.y,
-                                 material.diffuse_material.z,
-                                 1.0};
+  // GLfloat material_color[4] = {material.diffuse_material.x,
+  //                              material.diffuse_material.y,
+  //                              material.diffuse_material.z,
+  //                              1.0};
+  // GLfloat material_specular[4] = {material.specular_material.x,
+  //                                 material.specular_material.y,
+  //                                 material.specular_material.z,
+  //                                 1.0};
+  // GLfloat material_ambient[4] = {material.diffuse_material.x,
+  //                                material.diffuse_material.y,
+  //                                material.diffuse_material.z,
+  //                                1.0};
 
-  glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material_specular);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_color);
-  glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_ambient);
-  glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material.shininess);
-  glEnableClientState(GL_VERTEX_ARRAY) ;
-  glEnableClientState (GL_NORMAL_ARRAY);
-  glNormalPointer(GL_FLOAT, 3 * sizeof(float), (GLvoid*)(normals_array.data()));
-  glVertexPointer(3, GL_FLOAT, 3 * sizeof(float) , (GLvoid*)(positions_array.data()));
-  glDrawElements(GL_TRIANGLES, triangles_array.size(), GL_UNSIGNED_INT, (GLvoid*)(triangles_array.data()));
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material_specular);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material_color);
+  // glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material_ambient);
+  // glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material.shininess);
+  // glEnableClientState(GL_VERTEX_ARRAY) ;
+  // glEnableClientState (GL_NORMAL_ARRAY);
+  // glNormalPointer(GL_FLOAT, 3 * sizeof(float), (GLvoid*)(normals_array.data()));
+  // glVertexPointer(3, GL_FLOAT, 3 * sizeof(float) , (GLvoid*)(positions_array.data()));
+  // glDrawElements(GL_TRIANGLES, triangles_array.size(), GL_UNSIGNED_INT, (GLvoid*)(triangles_array.data()));
+
+  Renderer *rd = Renderer::get_singleton();
+  rd->set_model_matrix(kmath::Mat4::IDENTITY);
+  
+  tputils::ImmediateGeometry &imgeo = rd->immediate_geometry();
+
+  imgeo.begin(tputils::ImmediateGeometry::Mode::TRIANGLES, rd->get_default_buffer_layout());
+  for (const uint32_t &index : triangles_array) {
+    const kmath::Vec3 position{
+      positions_array[3 * index + 0],
+      positions_array[3 * index + 1],
+      positions_array[3 * index + 2],
+    };
+    imgeo.push_vec3(position);
+    const kmath::Vec3 normal{
+      normals_array[3 * index + 0],
+      normals_array[3 * index + 1],
+      normals_array[3 * index + 2],
+    };
+    imgeo.push_vec3(normal);
+    const kmath::Vec2 uv{
+      uvs_array[3 * index + 0],
+      uvs_array[3 * index + 1],
+    };
+    imgeo.push_vec2(uv);
+  }
+  imgeo.end();
 }
 
 

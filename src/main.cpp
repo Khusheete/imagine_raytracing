@@ -35,9 +35,9 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
-#include <GL/gl.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <fstream>
@@ -46,22 +46,26 @@
 #include <thread>
 #include <vector>
 #include <string>
-#include <chrono>
 
-#include <GLFW/glfw3.h>
-
-#include "thirdparty/kmath/constants.hpp"
 #include "thirdparty/kmath/vector.hpp"
 
-#include "scene.hpp"
 
-#include "utils/camera.hpp"
-#include "utils/drawing_primitives.hpp"
+#include "tp_utils/src/rendering/camera.hpp"
+
+#include "tp_utils/src/rendering/primitives/shader.hpp"
+#include "tp_utils/src/rendering/rendering.hpp"
+#include "tp_utils/src/time.hpp"
+#include "tp_utils/src/windowing.hpp"
 #include "utils/gl_utils.hpp"
 #include "utils/image.hpp"
 #include "utils/profiler.hpp"
+#include "utils/renderer.hpp"
 #include "utils/thread_group.hpp"
 
+#include "tp_utils/src/rendering/immediate_geometry.hpp"
+#include <GLFW/glfw3.h>
+
+#include "scene.hpp"
 
 // ====================
 // = Global variables =
@@ -71,8 +75,8 @@
 // Windowing
 
 static GLFWwindow *window;
-static unsigned int window_width = 480;
-static unsigned int window_height = 480;
+static int window_width = 480;
+static int window_height = 480;
 static unsigned int frame_rate = 0;
 static bool fullscreen = false;
 
@@ -81,9 +85,15 @@ static float frame_delta;
 static long frame_count;
 
 
+// Rendering
+
+static tputils::ImmediateGeometry imgeo;
+static tputils::ShaderProgram object_shader;
+
+
 // Camera and inputs
 
-static FreeCamera camera;
+static tputils::FreeCamera3D camera;
 
 static bool left_mouse_button_pressed = false;
 static bool right_mouse_button_pressed = false;
@@ -91,57 +101,15 @@ static bool right_mouse_button_pressed = false;
 
 // Scenes
 
-std::vector<Scene> scenes;
-unsigned int selected_scene;
+static std::vector<Scene> scenes;
+static unsigned int selected_scene;
 
-std::vector<std::pair<Ray, kmath::Vec2>> rays;
+static std::vector<std::pair<Ray, kmath::Vec2>> rays;
 
 
 // =========================
 // = Some helper functions =
 // =========================
-
-
-long get_time_millis() {
-  static auto prog_start = std::chrono::system_clock::now();
-  
-  auto now = std::chrono::system_clock::now();
-  auto dur = now - prog_start;
-  auto millis_dur = std::chrono::duration_cast<std::chrono::milliseconds>(dur);
-  long millis = millis_dur.count();
-  return millis;
-}
-
-
-float get_time_delta(const long p_from, const long p_to) {
-  return (float)(p_to - p_from) / 1000.0f;
-}
-
-
-void load_perspective_projection_matrix(const float aspect_ratio) {
-  glMatrixMode(GL_PROJECTION);
-  kmath::Mat4 projection = kmath::Mat4::perspective_lh_no_ndc_vfov(
-    0.1f,
-    20.0f,
-    kmath::PI * 75.0 / 180.0,
-    aspect_ratio
-  );
-  load_matrix(projection);
-  glMatrixMode(GL_MODELVIEW);
-}
-
-
-void load_orthogonal_projection_matrix(const float width, const float height) {
-  glMatrixMode(GL_PROJECTION);
-  kmath::Mat4 projection = kmath::Mat4::orthogonal_lh_no_ndc(
-    0.1f,
-    10.0f,
-    width,
-    height
-  );
-  load_matrix(projection);
-  glMatrixMode(GL_MODELVIEW);
-}
 
 
 void toggle_fullscreen() {
@@ -175,29 +143,33 @@ void center_mouse() {
 
 
 void draw() {
-  glMatrixMode(GL_MODELVIEW_MATRIX);
-  load_matrix(camera.get_view_matrix());
+  Renderer *rd = Renderer::get_singleton();
+  rd->begin_frame();
+
+  const double aspect_ratio = (double)window_width / window_height;
+  rd->set_projection_view_matrix(camera.get_projection_view_matrix(aspect_ratio));
 
   // Draw scene
-  glEnable(GL_LIGHTING);
   scenes[selected_scene].draw();
 
   // Draw rays
-  // std::cout << rays.size() << std::endl;
-  glDisable(GL_LIGHTING);
-  glDisable(GL_TEXTURE_2D);
-  glLineWidth(6);
-  glBegin(GL_LINES);
-  for (unsigned int r = 0 ; r < rays.size() ; ++r) {
-    const kmath::Vec3 point = rays[r].first.origin;
-    const kmath::Vec3 dir = rays[r].first.direction;
-    const kmath::Vec3 tip = point + dir;
-    const kmath::Vec2 uv = rays[r].second;
-    glColor3f(uv.x, uv.y, 0.0);
-    glVertex3f(point.x, point.y, point.z);
-    glVertex3f(tip.x, tip.y, tip.z);
-  }
-  glEnd();
+  // FIXME: reimplement
+  // glDisable(GL_LIGHTING);
+  // glDisable(GL_TEXTURE_2D);
+  // glLineWidth(6);
+  // glBegin(GL_LINES);
+  // for (unsigned int r = 0 ; r < rays.size() ; ++r) {
+  //   const kmath::Vec3 point = rays[r].first.origin;
+  //   const kmath::Vec3 dir = rays[r].first.direction;
+  //   const kmath::Vec3 tip = point + dir;
+  //   const kmath::Vec2 uv = rays[r].second;
+  //   glColor3f(uv.x, uv.y, 0.0);
+  //   glVertex3f(point.x, point.y, point.z);
+  //   glVertex3f(tip.x, tip.y, tip.z);
+  // }
+  // glEnd();
+
+  rd->end_frame();
 }
 
 // Polynomial approximation of EaryChow's AgX sigmoid curve.
@@ -282,13 +254,14 @@ void ray_trace_from_camera() {
   const size_t image_height = window_height;
   const float inv_image_width = 1.0f / static_cast<float>(image_width);
   const float inv_image_height = 1.0f / static_cast<float>(image_height);
+  const float aspect_ratio = static_cast<float>(image_width) / static_cast<float>(image_height);
 
   const unsigned int sample_count = 50;
   const float sample_division = 1.0f / static_cast<float>(sample_count);
   Image image(image_width, image_height);
 
-  const Mat4 inv_proj = inverse(get_projection_matrixf());
-  const Mat4 inv_view = camera.get_inv_view_matrix();
+  const Mat4 inv_proj = inverse(camera.get_projection_matrix(aspect_ratio));
+  const Mat4 inv_view = camera.get_inverse_view_matrix();
   const Mat4 inv_mvp = inv_view * inv_proj;
 
   const Vec3 camera_position = homogeneous_projection(inv_view * Vec4(Vec3::ZERO, 1.0));
@@ -411,11 +384,11 @@ void ray_trace_from_camera() {
 
 void update() {
   // Display frame delta
-  static long fps_prev_measure_time = get_time_millis();
+  static long fps_prev_measure_time = tputils::get_time_millis();
   static long fps_prev_measure_frame_count = frame_count;
 
-  const long current_time = get_time_millis();
-  const float fps_delta = get_time_delta(current_time, fps_prev_measure_time);
+  const long current_time = tputils::get_time_millis();
+  const float fps_delta = tputils::get_time_delta(current_time, fps_prev_measure_time);
   
   if (fps_delta >= 1000.0f) {
     const long frame_count_delta = frame_count - fps_prev_measure_frame_count;
@@ -433,13 +406,13 @@ void update() {
   kmath::Vec3 movement_dir;
   
   if (glfwGetKey(window, GLFW_KEY_W)) {
-    movement_dir.z += 1.0;
+    movement_dir.z -= 1.0;
   }
   if (glfwGetKey(window, GLFW_KEY_A)) {
     movement_dir.x -= 1.0;
   }
   if (glfwGetKey(window, GLFW_KEY_S)) {
-    movement_dir.z -= 1.0;
+    movement_dir.z += 1.0;
   }
   if (glfwGetKey(window, GLFW_KEY_D)) {
     movement_dir.x += 1.0;
@@ -455,7 +428,7 @@ void update() {
     movement_dir *= 2.5f;
   }
 
-  camera.local_translate(movement_dir * frame_delta);
+  camera.update_position(movement_dir * frame_delta);
 }
 
 
@@ -528,7 +501,7 @@ void mouse_motion([[maybe_unused]] GLFWwindow *p_window, double p_xpos, double p
   const kmath::Vec2 mouse_delta = current_mouse_pos - get_window_center();
   const kmath::Vec2 rotation_delta = 0.5f * frame_delta * mouse_delta;
 
-  camera.local_rotate(rotation_delta);
+  camera.update_rotation(rotation_delta);
 
   center_mouse();
 }
@@ -537,7 +510,6 @@ void mouse_motion([[maybe_unused]] GLFWwindow *p_window, double p_xpos, double p
 void resized([[maybe_unused]] GLFWwindow *p_window, int width, int height) {
   window_width = width;
   window_height = height;
-  load_perspective_projection_matrix((float)window_width / window_height);
   glViewport(0, 0, window_width, window_height);
 }
 
@@ -579,69 +551,17 @@ void print_help() {
 // =======================
 
 
-void init_light() {
-  GLfloat light_position[4] = {0.0, 1.5, 0.0, 1.0};
-  GLfloat color[4] = { 1.0, 1.0, 1.0, 1.0};
-  GLfloat ambient[4] = { 1.0, 1.0, 1.0, 1.0};
-
-  glLightfv(GL_LIGHT1, GL_POSITION, light_position);
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, color);
-  glLightfv(GL_LIGHT1, GL_SPECULAR, color);
-  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
-  glEnable(GL_LIGHT1);
-  glEnable(GL_LIGHTING);
-}
-
-
 void init_scenes() {
-  camera.position = kmath::Vec3(0., 0., 3.1);
+  camera.set_position(kmath::Vec3(0., 0., 3.1));
 
   selected_scene = 0;
-  scenes.resize(3);
-  scenes[0].setup_single_sphere();
-  scenes[1].setup_single_square();
-  scenes[2].setup_cornell_box();
+  scenes.resize(2);
+  // scenes[0].setup_single_sphere();
+  // scenes[1].setup_single_square();
+  scenes[0].setup_cornell_box();
+  scenes[1].setup_simple_mesh();
 
-  init_light();
   resized(window, window_width, window_height);
-}
-
-
-GLFWwindow *init_window() {
-  if (!glfwInit()) return nullptr;
-  
-  GLFWwindow *window = glfwCreateWindow(
-    window_width, window_height,
-    "TP 2",
-    NULL,
-    NULL
-  );
-  if (!window) {
-    glfwTerminate();
-    return nullptr;
-  }
-
-  glfwMakeContextCurrent(window);
-  glfwSetKeyCallback(window, &key_callback);
-
-  glFrontFace(GL_CCW);
-  glCullFace(GL_BACK);
-  glEnable(GL_CULL_FACE);
-
-  glDepthFunc(GL_LESS);
-  glEnable(GL_DEPTH_TEST);
-
-  glClearColor(0.08f, 0.02f, 0.12f, 1.0f);
-
-  // glEnable(GL_COLOR_MATERIAL);
-  glPointSize(8.0f);
-
-  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable(GL_BLEND);
-
-  glEnable(GL_DEBUG_OUTPUT);
-
-  return window;
 }
 
 
@@ -649,30 +569,36 @@ int main() {
   print_help();
 
   // Init
-  window = init_window();
+  tputils::GLFWContext glfw_context = tputils::init_glfw();
+  window = tputils::init_window("Raytracing");
+  if (!window) {
+    std::cout << "Could not create window." << std::endl;
+    return EXIT_FAILURE;
+  }
+  tputils::init_opengl_context();
 
   glfwSetKeyCallback(window, &key_callback);
   glfwSetWindowSizeCallback(window, &resized);
   glfwSetMouseButtonCallback(window, &mouse_button);
   glfwSetCursorPosCallback(window, &mouse_motion);
 
+  Renderer::init_singleton();
   init_scenes();
 
   // Main loop
-  prev_frame_time = get_time_millis();
+  prev_frame_time = tputils::get_time_millis();
 
   while (!glfwWindowShouldClose(window)) {
-    long current_time = get_time_millis();
-    frame_delta = get_time_delta(prev_frame_time, current_time);
+    long current_time = tputils::get_time_millis();
+    frame_delta = tputils::get_time_delta(prev_frame_time, current_time);
     prev_frame_time = current_time;
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    tputils::begin_frame(window, window_width, window_height);
 
     update();
     draw();
 
-    glFlush();
-    glfwSwapBuffers(window);
+    tputils::end_frame(window);
     glfwPollEvents();
 
     frame_count += 1;

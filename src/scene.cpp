@@ -39,6 +39,8 @@
 #include "geometry/ray.hpp"
 #include "geometry/light.hpp"
 #include "material.hpp"
+#include "utils/renderer.hpp"
+
 #include <optional>
 #include <random>
 #include <variant>
@@ -188,11 +190,11 @@ void Scene::draw() const {
   }
   for(size_t i = 0 ; i < spheres.size() ; ++i) {
     const Sphere &sphere = spheres[i];
-    sphere.draw();
+    Renderer::get_singleton()->draw_sphere(sphere);
   }
   for(size_t i = 0 ; i < squares.size() ; ++i) {
     const Square &square = squares[i];
-    square.draw();
+    Renderer::get_singleton()->draw_rect(square);
   }
 }
 
@@ -220,7 +222,6 @@ void Scene::setup_single_sphere() {
     Sphere &s = spheres[spheres.size() - 1];
     s.center = Vec3(0. , 0. , 0.);
     s.radius = 1.f;
-    s.build_arrays();
     s.material.type = MaterialType::MIRROR;
     s.material.diffuse_material = Vec3(1., 1., 1);
     s.material.specular_material = Vec3(0.2, 0.2, 0.2);
@@ -247,7 +248,6 @@ void Scene::setup_single_square() {
     squares.resize(squares.size() + 1);
     Square &s = squares[squares.size() - 1];
     s.set_quad(Vec3(-1., -1., 0.), Vec3(1., 0, 0.), Vec3(0., 1, 0.), Vec2(2.0, 2.0));
-    s.build_arrays();
     s.material.diffuse_material = Vec3(0.8, 0.8, 0.8);
     s.material.specular_material = Vec3(0.8, 0.8, 0.8);
     s.material.shininess = 20;
@@ -276,7 +276,6 @@ void Scene::setup_cornell_box() {
     s.set_quad(Vec3(-1., -1., 0.), Vec3(1., 0, 0.), Vec3(0., 1, 0.), Vec2(2.0, 2.0));
     s.scale(Vec3(2., 2., 1.));
     s.translate(Vec3(0., 0., -2.));
-    s.build_arrays();
     s.material.diffuse_material  = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
     s.material.specular_material = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
     s.material.shininess = 16.0;
@@ -288,7 +287,6 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.translate(Vec3(0., 0., -2.));
     s.rotate_y(90);
-    s.build_arrays();
     s.material.diffuse_material = Vec3(1., 0., 0.);
     s.material.specular_material = Vec3(1., 0., 0.);
     s.material.shininess = 16.0;
@@ -300,7 +298,6 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(-90);
-    s.build_arrays();
     s.material.diffuse_material = Vec3(0.0, 1.0, 0.0);
     s.material.specular_material = Vec3(0.0, 1.0, 0.0);
     s.material.shininess = 16.0;
@@ -312,7 +309,6 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(-90);
-    s.build_arrays();
     s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
     s.material.specular_material = Vec3(1.0, 1.0, 1.0);
     s.material.shininess = 16.0;
@@ -324,7 +320,6 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(90);
-    s.build_arrays();
     s.material.diffuse_material = Vec3(0.0, 0.0, 1.0);
     s.material.specular_material = Vec3(0.0, 0.0, 1.0);
     s.material.shininess = 16.0;
@@ -336,7 +331,6 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(180);
-    s.build_arrays();
     s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
     s.material.specular_material = Vec3(1.0, 1.0, 1.0);
     s.material.shininess = 16.0;
@@ -346,7 +340,6 @@ void Scene::setup_cornell_box() {
     Sphere &s = spheres[spheres.size() - 1];
     s.center = Vec3(1.0, -1.25, 0.5);
     s.radius = 0.75f;
-    s.build_arrays();
     s.material.type = MaterialType::MIRROR;
     s.material.diffuse_material = Vec3(1., 0., 0.);
     s.material.specular_material = Vec3(1., 0., 0.);
@@ -359,12 +352,34 @@ void Scene::setup_cornell_box() {
     Sphere &s = spheres[spheres.size() - 1];
     s.center = Vec3(-1.0, -1.25, -0.5);
     s.radius = 0.75f;
-    s.build_arrays();
     s.material.type = MaterialType::GLASS;
     s.material.diffuse_material = Vec3(0., 1., 1.);
     s.material.specular_material = Vec3(0., 1., 1.);
     s.material.shininess = 16.0;
     s.material.transparency = 0.;
     s.material.index_medium = 0.;
+  }
+}
+
+
+void Scene::setup_simple_mesh() {
+  meshes.clear();
+  spheres.clear();
+  squares.clear();
+  lights.clear();
+  {
+    lights.resize(lights.size() + 1);
+    Light &light = lights[lights.size() - 1];
+    // light.shape = UniformBallDistribution(Vec3(0.0, 1.5, 0.0), 0.1f);
+    light.shape = PointDistribution(Vec3(0.0, 1.5, 0.0));
+    light.data.radius = 2.0f;
+    light.data.power_correction = 2.f;
+    light.data.color = Lrgb::ONE;
+    light.data.energy = 4.0;
+  }
+  {
+    meshes.emplace_back();
+    Mesh &mesh = meshes.back();
+    mesh.load_obj("assets/models/unit_cube.obj");
   }
 }

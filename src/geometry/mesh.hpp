@@ -38,12 +38,13 @@
 #pragma once
 
 
+#include <filesystem>
 #include <vector>
 #include <string>
 #include <cfloat>
 #include <cstdint>
 
-#include <GL/gl.h>
+#include "thirdparty/glad/include/glad/glad.h"
 
 #include "thirdparty/kmath/matrix.hpp"
 #include "thirdparty/kmath/vector.hpp"
@@ -80,12 +81,13 @@ class Mesh {
 public:
   Material material;
 
-  void load_off(const std::string & filename);
+  // void load_off(const std::string & filename);
+  void load_obj(const std::filesystem::path &p_path);
   void recompute_normals();
   void center_and_scale_to_unit();
   void scale_unit();
 
-  virtual void build_arrays();
+  void build_arrays();
 
   void scale(const kmath::Vec3 &p_scale);
   void rotate_x(const float p_angle);
@@ -98,8 +100,12 @@ public:
 
   RayTriangleIntersection intersect(const Ray &p_ray) const;
 
-
-  virtual ~Mesh() = default;
+  Mesh() = default;
+  Mesh(Mesh&&) = default;
+  Mesh &operator=(Mesh&&) = default;
+  Mesh(const Mesh&) = default;
+  Mesh &operator=(const Mesh&) = default;
+  ~Mesh() = default;
 
 
 protected:
