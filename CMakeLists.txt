@@ -60,6 +60,7 @@ add_executable(raytracing
   src/geometry/mesh.cpp
   src/geometry/sphere.cpp
   src/geometry/square.cpp
+  src/geometry/triangle.cpp
   # src/light.cpp
 
   src/utils/gl_utils.cpp

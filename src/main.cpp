@@ -63,7 +63,7 @@
 #include "utils/thread_group.hpp"
 
 #include "tp_utils/src/rendering/immediate_geometry.hpp"
-#include <GLFW/glfw3.h>
+#include "thirdparty/glfw/include/GLFW/glfw3.h"
 
 #include "scene.hpp"
 
@@ -282,6 +282,7 @@ void ray_trace_from_camera() {
     const size_t thread_count = (available_thread_count)? available_thread_count : 8;
     std::cout << "Ray tracing a " << image_width << " x " << image_height << " image on " << thread_count << " threads" << std::endl;
     ThreadWorkGroup work_group(thread_count);
+    // ThreadWorkGroup work_group(1);
 
     // Lambda to declare a rendering pass
     auto exec_phase = [&](const char *p_phase_name, const ParallelFunction &p_func) -> void {
@@ -342,8 +343,8 @@ void ray_trace_from_camera() {
           const Vec3 ray_direction = homogeneous_projection(inv_mvp * Vec4(2.0f * u - 1.0f, -2.0f * v + 1.0f, -near_plane, 1.0)) - camera_position;
           const Ray ray = Ray(camera_position, ray_direction);
 
-          // const Vec3 color = scenes[selected_scene].ray_trace(ray);
-          const Vec3 color = scenes[selected_scene].ray_trace_recursive(rng, ray, 0);
+          const Vec3 color = scenes[selected_scene].ray_trace(rng, ray);
+          // const Vec3 color = scenes[selected_scene].ray_trace_recursive(rng, ray, 0);
 
           image(p_exec_index) += color;
         }
@@ -484,7 +485,7 @@ void mouse_button([[maybe_unused]] GLFWwindow *p_window, int p_button, int p_act
   case GLFW_MOUSE_BUTTON_RIGHT:
     right_mouse_button_pressed = (p_action == GLFW_PRESS);
     if (right_mouse_button_pressed) {
-      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+      glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     } else {
       glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }

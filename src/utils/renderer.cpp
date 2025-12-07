@@ -44,7 +44,6 @@
 #include "tp_utils/src/rendering/mesh.hpp"
 #include "tp_utils/src/rendering/primitives/shader.hpp"
 #include "tp_utils/src/source_preprocessing.hpp"
-#include <type_traits>
 
 
 using namespace tputils;

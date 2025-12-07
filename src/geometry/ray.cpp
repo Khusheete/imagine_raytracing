@@ -47,9 +47,9 @@ RayIntersection RayIntersection::from(const RaySphereIntersection p_rsph) {
     PolyIntersection(p_rsph), -1, Kind::RAY_SPHERE
   );
 }
-RayIntersection RayIntersection::from(const RayTriangleIntersection p_rtri) {
+RayIntersection RayIntersection::from(const RayMeshIntersection p_rmsh) {
   return RayIntersection(
-    PolyIntersection(p_rtri), -1, Kind::RAY_TRIANGLE
+    PolyIntersection(p_rmsh), -1, Kind::RAY_MESH
   );
 }
 RayIntersection RayIntersection::from(const RaySquareIntersection p_rsqu) {
@@ -60,7 +60,7 @@ RayIntersection RayIntersection::from(const RaySquareIntersection p_rsqu) {
 
 
 RayIntersection::PolyIntersection::PolyIntersection(RaySphereIntersection p_rsph): rsph(p_rsph) {}
-RayIntersection::PolyIntersection::PolyIntersection(RayTriangleIntersection p_rtri): rtri(p_rtri) {}
+RayIntersection::PolyIntersection::PolyIntersection(RayMeshIntersection p_rmsh): rmsh(p_rmsh) {}
 RayIntersection::PolyIntersection::PolyIntersection(RaySquareIntersection p_rsqu): rsqu(p_rsqu) {}
 RayIntersection::PolyIntersection::PolyIntersection(): common(kmath::Vec3::ZERO, kmath::Vec3::ZERO, std::numeric_limits<float>::infinity(), false) {}
 

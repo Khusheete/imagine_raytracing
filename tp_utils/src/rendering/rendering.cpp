@@ -43,7 +43,7 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 
-#include <GLFW/glfw3.h>
+#include "thirdparty/glfw/include/GLFW/glfw3.h"
 #include <iostream>
 #include <sstream>
 

@@ -41,7 +41,6 @@
 #include <filesystem>
 #include <vector>
 #include <cfloat>
-#include <cstdint>
 
 #include "thirdparty/glad/include/glad/glad.h"
 
@@ -65,17 +64,6 @@ struct MeshVertex {
 };
 
 
-struct MeshTriangle {
-  uint32_t a = 0, b = 0, c = 0;
-
-public:
-  inline unsigned int &operator[](unsigned int iv) { return *(&a + iv); }
-  inline unsigned int operator[](unsigned int iv) const { return *(&a + iv); }
-};
-
-
-
-
 class Mesh {
 public:
   Material material;
@@ -83,8 +71,6 @@ public:
   // void load_off(const std::string & filename);
   void load_obj(const std::filesystem::path &p_path);
   void recompute_normals();
-  void center_and_scale_to_unit();
-  void scale_unit();
 
   void build_arrays();
 
@@ -95,9 +81,44 @@ public:
   void translate(const kmath::Vec3 &p_translation);
   void apply_transformation_matrix(const kmath::Mat3 &p_transform);
 
+
+  inline size_t get_vertex_count() {
+    return positions_array.size() / 3;
+  }
+
+
+  inline size_t get_triangle_count() {
+    return triangles_array.size() / 3;
+  }
+  
+
+  inline kmath::Vec3 &get_position(const size_t p_index) {
+    return reinterpret_cast<kmath::Vec3*>(positions_array.data())[p_index];
+  }
+
+  inline const kmath::Vec3 &get_position(const size_t p_index) const {
+    return const_cast<Mesh*>(this)->get_position(p_index);
+  }
+
+  inline kmath::Vec3 &get_normal(const size_t p_index) {
+    return reinterpret_cast<kmath::Vec3*>(normals_array.data())[p_index];
+  }
+
+  inline const kmath::Vec3 &get_normal(const size_t p_index) const {
+    return const_cast<Mesh*>(this)->get_normal(p_index);
+  }
+
+  inline kmath::Vec2 &get_uv(const size_t p_index) {
+    return reinterpret_cast<kmath::Vec2*>(uvs_array.data())[p_index];
+  }
+
+  inline const kmath::Vec2 &get_uv(const size_t p_index) const {
+    return const_cast<Mesh*>(this)->get_uv(p_index);
+  }
+
   void draw() const;
 
-  RayTriangleIntersection intersect(const Ray &p_ray) const;
+  RayMeshIntersection intersect(const Ray &p_ray) const;
 
   Mesh() = default;
   Mesh(Mesh&&) = default;
@@ -108,16 +129,6 @@ public:
 
 
 protected:
-  void build_positions_array();
-  void build_normals_array();
-  void build_UVs_array();
-  void build_triangles_array();
-
-
-protected:
-  std::vector<MeshVertex> vertices;
-  std::vector<MeshTriangle> triangles;
-
   std::vector<float> positions_array;
   std::vector<float> normals_array;
   std::vector<float> uvs_array;

@@ -53,12 +53,13 @@ struct RaySphereIntersection {
 };
 
 
-struct RayTriangleIntersection {
+struct RayMeshIntersection {
   kmath::Vec3 position;
   kmath::Vec3 normal;
   float distance;
   bool exists = false;
-  kmath::Vec3 barycentric[3];
+  kmath::Vec2 uv;
+  kmath::Vec3 barycentric;
 };
 
 
@@ -75,7 +76,7 @@ struct RayIntersection {
 public:
   union PolyIntersection {
     RaySphereIntersection rsph;
-    RayTriangleIntersection rtri;
+    RayMeshIntersection rmsh;
     RaySquareIntersection rsqu;
 
     struct Common {
@@ -87,8 +88,8 @@ public:
 
 
     PolyIntersection(RaySphereIntersection p_rsph);
-    PolyIntersection(RayTriangleIntersection p_rsph);
-    PolyIntersection(RaySquareIntersection p_rsph);
+    PolyIntersection(RayMeshIntersection p_rmsh);
+    PolyIntersection(RaySquareIntersection p_rmsh);
     PolyIntersection();
   } intersection;
 
@@ -97,14 +98,14 @@ public:
   enum class Kind : unsigned char {
     NONE,
     RAY_SPHERE,
-    RAY_TRIANGLE,
+    RAY_MESH,
     RAY_SQUARE,
   } kind = Kind::NONE;
 
 
 public:
   static RayIntersection from(RaySphereIntersection p_rsph);
-  static RayIntersection from(RayTriangleIntersection p_rtri);
+  static RayIntersection from(RayMeshIntersection p_rmsh);
   static RayIntersection from(RaySquareIntersection p_rsqu);
 };
 

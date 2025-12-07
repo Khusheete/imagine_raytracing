@@ -72,6 +72,16 @@ RayIntersection Scene::compute_intersection(const Ray &p_ray) const {
     }
   }
 
+  // Square intersection
+  for (size_t i = 0; i < meshes.size(); i++) {
+    RayMeshIntersection rmsh = meshes[i].intersect(p_ray);
+    if (rmsh.exists && rmsh.distance < result.intersection.common.distance) {
+      result.intersection.rmsh = rmsh;
+      result.element_id = i;
+      result.kind = RayIntersection::Kind::RAY_MESH;
+    }
+  }
+
   return result;
 }
 
@@ -102,8 +112,18 @@ Vec3 Scene::_intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const
       lights
     );
   }
-  case RayIntersection::Kind::RAY_TRIANGLE:
-    return Vec3::ZERO;
+  case RayIntersection::Kind::RAY_MESH: {
+    const Mesh &mesh = meshes[p_intersection.element_id];
+    const RayMeshIntersection &rmsh = p_intersection.intersection.rmsh;
+    return mesh.material.get_color(
+      rmsh.position,
+      rmsh.normal,
+      -p_ray.direction,
+      0.1f * Lrgb::ONE,
+      p_rng,
+      lights
+    );
+  }
   case RayIntersection::Kind::NONE:
     return Vec3::ZERO;
   }
@@ -121,8 +141,10 @@ std::optional<const Material*> Scene::_intersection_get_material(const RayInters
     const Square &square = squares[p_intersection.element_id];
     return std::optional<const Material*>(&square.material);
   }
-  case RayIntersection::Kind::RAY_TRIANGLE:
-    return std::optional<const Material*>();
+  case RayIntersection::Kind::RAY_MESH: {
+    const Mesh &mesh = meshes[p_intersection.element_id];
+    return std::optional<const Material*>(&mesh.material);
+  }
   case RayIntersection::Kind::NONE:
     return std::optional<const Material*>();
   }

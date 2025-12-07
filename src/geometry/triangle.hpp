@@ -38,16 +38,27 @@
 #pragma once
 
 
+#include "geometry/ray.hpp"
 #include "thirdparty/kmath/vector.hpp"
-// #include "ray.h"
-// #include "Plane.h"
+#include <optional>
+
+
+struct RayTriangleIntersection {
+  kmath::Vec3 position;
+  kmath::Vec3 barycentric;
+  float distance;
+};
 
 
 struct Triangle {
   kmath::Vec3 points[3];
-  kmath::Vec3 normal;
-  float area;
 };
+
+
+// Returns (lambda_1, lambda_2) such that p_point = lambda_1 * p_a + lambda_2 * p_b
+kmath::Vec2 get_coordinates(const kmath::Vec3 &p_point, const kmath::Vec3 &p_a, const kmath::Vec3 &p_b);
+
+std::optional<RayTriangleIntersection> get_intersection(const Ray &p_ray, const Triangle &p_triangle);
 
 
 // class Triangle {

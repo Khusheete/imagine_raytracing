@@ -40,7 +40,7 @@
 
 #include "thirdparty/kmath/vector.hpp"
 
-#include <GLFW/glfw3.h>
+#include "thirdparty/glfw/include/GLFW/glfw3.h"
 
 
 namespace tputils {

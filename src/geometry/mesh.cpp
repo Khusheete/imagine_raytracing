@@ -37,68 +37,18 @@
 
 #include "mesh.hpp"
 #include "geometry/ray.hpp"
+#include "geometry/triangle.hpp"
 #include "thirdparty/kmath/matrix.hpp"
-#include "tp_utils/src/debug.hpp"
+#include "thirdparty/kmath/vector.hpp"
 #include "tp_utils/src/model_loaders/wavefront_object.hpp"
 #include "tp_utils/src/rendering/immediate_geometry.hpp"
 #include "utils/renderer.hpp"
 
 
 #include <filesystem>
-#include <iostream>
-#include <fstream>
 
 #include <GL/gl.h>
 #include <unordered_map>
-#include <valarray>
-
-
-void Mesh::build_arrays() {
-  recompute_normals();
-  build_positions_array();
-  build_normals_array();
-  build_UVs_array();
-  build_triangles_array();
-}
-
-
-void Mesh::build_positions_array() {
-  positions_array.resize(3 * vertices.size());
-  for( unsigned int v = 0 ; v < vertices.size() ; ++v ) {
-    positions_array[3*v + 0] = vertices[v].position.x;
-    positions_array[3*v + 1] = vertices[v].position.y;
-    positions_array[3*v + 2] = vertices[v].position.z;
-  }
-}
-
-
-void Mesh::build_normals_array() {
-  normals_array.resize(3 * vertices.size());
-  for( unsigned int v = 0 ; v < vertices.size() ; ++v ) {
-    normals_array[3*v + 0] = vertices[v].normal.x;
-    normals_array[3*v + 1] = vertices[v].normal.y;
-    normals_array[3*v + 2] = vertices[v].normal.z;
-  }
-}
-
-
-void Mesh::build_UVs_array() {
-  uvs_array.resize(2 * vertices.size());
-  for( unsigned int vert = 0 ; vert < vertices.size() ; ++vert ) {
-    uvs_array[2*vert + 0] = vertices[vert].uv.x;
-    uvs_array[2*vert + 1] = vertices[vert].uv.y;
-  }
-}
-
-
-void Mesh::build_triangles_array() {
-  triangles_array.resize(3 * triangles.size());
-  for( unsigned int t = 0 ; t < triangles.size() ; ++t ) {
-    triangles_array[3*t + 0] = triangles[t][0];
-    triangles_array[3*t + 1] = triangles[t][1];
-    triangles_array[3*t + 2] = triangles[t][2];
-  }
-}
 
 
 void Mesh::load_obj(const std::filesystem::path &p_path) {
@@ -196,52 +146,50 @@ void Mesh::load_obj(const std::filesystem::path &p_path) {
 
 
 void Mesh::recompute_normals() {
-  for (unsigned int i = 0; i < vertices.size (); i++)
-    vertices[i].normal = kmath::Vec3(0.0, 0.0, 0.0);
-  for (unsigned int i = 0; i < triangles.size (); i++) {
-    kmath::Vec3 e01 = vertices[triangles[i][1]].position -  vertices[triangles[i][0]].position;
-    kmath::Vec3 e02 = vertices[triangles[i][2]].position -  vertices[triangles[i][0]].position;
-    kmath::Vec3 n = kmath::normalized(kmath::cross(e01, e02));
+  for (unsigned int i = 0; i < get_vertex_count(); i++)
+    get_normal(i) = kmath::Vec3(0.0, 0.0, 0.0);
+  for (unsigned int i = 0; i < get_triangle_count(); i++) {
+    kmath::Vec3 e01 = get_position(triangles_array[3 * i + 1]) - get_position(triangles_array[3 * i + 0]);
+    kmath::Vec3 e02 = get_position(triangles_array[3 * i + 2]) - get_position(triangles_array[3 * i + 0]);
+    kmath::Vec3 n = kmath::cross(e01, e02);
     for (unsigned int j = 0; j < 3; j++)
-      vertices[triangles[i][j]].normal += n;
+      get_normal(triangles_array[3 * i + j]) += n;
   }
-  for (unsigned int i = 0; i < vertices.size (); i++) {
-    vertices[i].normal = normalized(vertices[i].normal);
+  for (unsigned int i = 0; i < get_vertex_count(); i++) {
+    get_normal(i) = normalized(get_normal(i));
   }
 }
 
 
-void Mesh::center_and_scale_to_unit() {
-  kmath::Vec3 c(0,0,0);
-  for (unsigned int i = 0; i < vertices.size(); i++)
-    c += vertices[i].position;
-  c /= static_cast<float>(vertices.size());
+// void Mesh::center_and_scale_to_unit() {
+//   kmath::Vec3 c(0,0,0);
+//   for (unsigned int i = 0; i < vertices.size(); i++)
+//     c += vertices[i].position;
+//   c /= static_cast<float>(vertices.size());
 
-  float maxD = kmath::length(vertices[0].position - c);
-  for (unsigned int i = 0; i < vertices.size(); i++){
-    float m = length(vertices[i].position - c);
-    if (m > maxD)
-      maxD = m;
-  }
-  for (unsigned int i = 0; i < vertices.size(); i++)
-    vertices[i].position = (vertices[i].position - c) / maxD;
-}
+//   float maxD = kmath::length(vertices[0].position - c);
+//   for (unsigned int i = 0; i < vertices.size(); i++){
+//     float m = length(vertices[i].position - c);
+//     if (m > maxD)
+//       maxD = m;
+//   }
+//   for (unsigned int i = 0; i < vertices.size(); i++)
+//     vertices[i].position = (vertices[i].position - c) / maxD;
+// }
 
 
 void Mesh::translate(const kmath::Vec3 &p_translation) {
-  for (unsigned int v = 0; v < vertices.size(); ++v) {
-    vertices[v].position += p_translation;
+  for (unsigned int v = 0; v < get_vertex_count(); ++v) {
+    get_position(v) += p_translation;
   }
 }
 
 
 void Mesh::apply_transformation_matrix(const kmath::Mat3 &p_transform) {
-  for (unsigned int v = 0 ; v < vertices.size(); ++v) {
-    vertices[v].position = p_transform * vertices[v].position;
+  for (unsigned int v = 0 ; v < get_vertex_count(); ++v) {
+    get_position(v) = p_transform * get_position(v);
   }
-  //    recomputeNormals();
-  //    build_positions_array();
-  //    build_normals_array();
+  recompute_normals();
 }
 
 
@@ -321,8 +269,8 @@ void Mesh::draw() const {
     };
     imgeo.push_vec3(normal);
     const kmath::Vec2 uv{
-      uvs_array[3 * index + 0],
-      uvs_array[3 * index + 1],
+      uvs_array[2 * index + 0],
+      uvs_array[2 * index + 1],
     };
     imgeo.push_vec2(uv);
   }
@@ -330,12 +278,82 @@ void Mesh::draw() const {
 }
 
 
-RayTriangleIntersection Mesh::intersect(const Ray &p_ray) const {
-  RayTriangleIntersection closestIntersection;
-  closestIntersection.distance = FLT_MAX;
-  // Note :
-  // Creer un objet Triangle pour chaque face
-  // Vous constaterez des problemes de précision
-  // solution : ajouter un facteur d'échelle lors de la création du Triangle : float triangleScaling = 1.000001;
-  return closestIntersection;
+RayMeshIntersection Mesh::intersect(const Ray &p_ray) const {
+  RayMeshIntersection closest_intersection;
+  closest_intersection.distance = FLT_MAX;
+
+  for (size_t triangle_index = 0; triangle_index < triangles_array.size(); triangle_index += 3) {
+    const uint32_t index_a = triangles_array[triangle_index + 0];
+    const kmath::Vec3 point_a{
+      positions_array[3 * index_a + 0],
+      positions_array[3 * index_a + 1],
+      positions_array[3 * index_a + 2],
+    };
+    const uint32_t index_b = triangles_array[triangle_index + 1];
+    const kmath::Vec3 point_b{
+      positions_array[3 * index_b + 0],
+      positions_array[3 * index_b + 1],
+      positions_array[3 * index_b + 2],
+    };
+    const uint32_t index_c = triangles_array[triangle_index + 2];
+    const kmath::Vec3 point_c{
+      positions_array[3 * index_c + 0],
+      positions_array[3 * index_c + 1],
+      positions_array[3 * index_c + 2],
+    };
+    const Triangle tri{{
+      point_a, point_b, point_c
+    }};
+    const auto intersection_opt = get_intersection(p_ray, tri);
+    if (!intersection_opt.has_value()) continue;
+    const RayTriangleIntersection intersection = intersection_opt.value();
+    
+    if (intersection.distance >= closest_intersection.distance) continue;
+
+    const kmath::Vec3 normal_a{
+      normals_array[3 * index_a + 0],
+      normals_array[3 * index_a + 1],
+      normals_array[3 * index_a + 2],
+    };
+    const kmath::Vec3 normal_b{
+      normals_array[3 * index_b + 0],
+      normals_array[3 * index_b + 1],
+      normals_array[3 * index_b + 2],
+    };
+    const kmath::Vec3 normal_c{
+      normals_array[3 * index_c + 0],
+      normals_array[3 * index_c + 1],
+      normals_array[3 * index_c + 2],
+    };
+
+    const kmath::Vec2 uv_a{
+      uvs_array[2 * index_a + 0],
+      uvs_array[2 * index_a + 1],
+    };
+    const kmath::Vec2 uv_b{
+      uvs_array[2 * index_b + 0],
+      uvs_array[2 * index_b + 1],
+    };
+    const kmath::Vec2 uv_c{
+      uvs_array[2 * index_c + 0],
+      uvs_array[2 * index_c + 1],
+    };
+
+    closest_intersection.position = intersection.position;
+    closest_intersection.distance = intersection.distance;
+    closest_intersection.normal = kmath::normalized(
+      intersection.barycentric.x * normal_a
+      + intersection.barycentric.y * normal_b
+      + intersection.barycentric.z * normal_c
+    );
+    closest_intersection.uv = (
+      intersection.barycentric.x * uv_a
+      + intersection.barycentric.y * uv_b
+      + intersection.barycentric.z * uv_c
+    );
+    closest_intersection.barycentric = intersection.barycentric;
+  }
+
+  closest_intersection.exists = (closest_intersection.distance != FLT_MAX);
+  return closest_intersection;
 }
