@@ -343,8 +343,8 @@ void ray_trace_from_camera() {
           const Vec3 ray_direction = homogeneous_projection(inv_mvp * Vec4(2.0f * u - 1.0f, -2.0f * v + 1.0f, -near_plane, 1.0)) - camera_position;
           const Ray ray = Ray(camera_position, ray_direction);
 
-          const Vec3 color = scenes[selected_scene].ray_trace(rng, ray);
-          // const Vec3 color = scenes[selected_scene].ray_trace_recursive(rng, ray, 0);
+          // const Vec3 color = scenes[selected_scene].ray_trace(rng, ray);
+          const Vec3 color = scenes[selected_scene].ray_trace_recursive(rng, ray, 4);
 
           image(p_exec_index) += color;
         }

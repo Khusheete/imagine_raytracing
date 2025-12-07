@@ -168,7 +168,7 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
     const Material &intersection_material = *_intersection_get_material(scene_inter).value();
     const Vec3 intersection_normal = scene_inter.intersection.common.normal;
     const Vec3 intersection_point = scene_inter.intersection.common.position + 0.0001f * intersection_normal;
-    Lrgb bounce_color = 0.1f * intersection_material.diffuse_material;
+    Lrgb bounce_color = 0.1f * intersection_material.albedo;
 
     for (const Light &light : lights) {
       const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
@@ -190,9 +190,9 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
     color += bounce_contribution * bounce_color;
 
     // Setup for the next light bounce
-    bounce_contribution *= 0.2;
-    const Vec3 reflected_direction = reflect(ray.direction, intersection_normal);
-    ray = Ray(intersection_point, reflected_direction);
+    const auto [bounce_direction, bounce_strength] = intersection_material.bounce(p_rng, ray.direction, intersection_normal);
+    bounce_contribution *= bounce_strength;
+    ray = Ray(intersection_point, bounce_direction);
   }
   
   return color;
@@ -244,9 +244,10 @@ void Scene::setup_single_sphere() {
     Sphere &s = spheres[spheres.size() - 1];
     s.center = Vec3(0. , 0. , 0.);
     s.radius = 1.f;
-    s.material.type = MaterialType::MIRROR;
-    s.material.diffuse_material = Vec3(1., 1., 1);
-    s.material.specular_material = Vec3(0.2, 0.2, 0.2);
+    s.material.diffuse = 1.0;
+    s.material.mirror = 0.2;
+    s.material.albedo = Vec3(1., 1., 1);
+    s.material.specular = Vec3(0.2, 0.2, 0.2);
     s.material.shininess = 20;
   }
 }
@@ -270,8 +271,8 @@ void Scene::setup_single_square() {
     squares.resize(squares.size() + 1);
     Square &s = squares[squares.size() - 1];
     s.set_quad(Vec3(-1., -1., 0.), Vec3(1., 0, 0.), Vec3(0., 1, 0.), Vec2(2.0, 2.0));
-    s.material.diffuse_material = Vec3(0.8, 0.8, 0.8);
-    s.material.specular_material = Vec3(0.8, 0.8, 0.8);
+    s.material.albedo = Vec3(0.8, 0.8, 0.8);
+    s.material.specular = Vec3(0.8, 0.8, 0.8);
     s.material.shininess = 20;
   }
 }
@@ -298,8 +299,8 @@ void Scene::setup_cornell_box() {
     s.set_quad(Vec3(-1., -1., 0.), Vec3(1., 0, 0.), Vec3(0., 1, 0.), Vec2(2.0, 2.0));
     s.scale(Vec3(2., 2., 1.));
     s.translate(Vec3(0., 0., -2.));
-    s.material.diffuse_material  = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
-    s.material.specular_material = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
+    s.material.albedo  = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
+    s.material.specular = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
     s.material.shininess = 16.0;
   }
   { //Left Wall
@@ -309,8 +310,8 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.translate(Vec3(0., 0., -2.));
     s.rotate_y(90);
-    s.material.diffuse_material = Vec3(1., 0., 0.);
-    s.material.specular_material = Vec3(1., 0., 0.);
+    s.material.albedo = Vec3(1., 0., 0.);
+    s.material.specular = Vec3(1., 0., 0.);
     s.material.shininess = 16.0;
   }
   { //Right Wall
@@ -320,8 +321,8 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(-90);
-    s.material.diffuse_material = Vec3(0.0, 1.0, 0.0);
-    s.material.specular_material = Vec3(0.0, 1.0, 0.0);
+    s.material.albedo = Vec3(0.0, 1.0, 0.0);
+    s.material.specular = Vec3(0.0, 1.0, 0.0);
     s.material.shininess = 16.0;
   }
   { //Floor
@@ -331,8 +332,8 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(-90);
-    s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
-    s.material.specular_material = Vec3(1.0, 1.0, 1.0);
+    s.material.albedo = Vec3(1.0, 1.0, 1.0);
+    s.material.specular = Vec3(1.0, 1.0, 1.0);
     s.material.shininess = 16.0;
   }
   { //Ceiling
@@ -342,8 +343,8 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(90);
-    s.material.diffuse_material = Vec3(0.0, 0.0, 1.0);
-    s.material.specular_material = Vec3(0.0, 0.0, 1.0);
+    s.material.albedo = Vec3(0.0, 0.0, 1.0);
+    s.material.specular = Vec3(0.0, 0.0, 1.0);
     s.material.shininess = 16.0;
   }
   { //Front Wall
@@ -353,33 +354,32 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(180);
-    s.material.diffuse_material = Vec3(1.0, 1.0, 1.0);
-    s.material.specular_material = Vec3(1.0, 1.0, 1.0);
+    s.material.albedo = Vec3(1.0, 1.0, 1.0);
+    s.material.specular = Vec3(1.0, 1.0, 1.0);
+    s.material.shininess = 16.0;
+  }
+  { //MIRRORED Sphere
+    spheres.resize(spheres.size() + 1);
+    Sphere &s = spheres[spheres.size() - 1];
+    s.center = Vec3(1.0, -1.25, 0.5);
+    s.radius = 0.75f;
+    s.material.diffuse = 0.2;
+    s.material.mirror = 0.8;
+    s.material.albedo = Vec3(1., 0., 0.);
+    s.material.specular = Vec3(1., 0., 0.);
     s.material.shininess = 16.0;
   }
   { //GLASS Sphere
     spheres.resize(spheres.size() + 1);
     Sphere &s = spheres[spheres.size() - 1];
-    s.center = Vec3(1.0, -1.25, 0.5);
-    s.radius = 0.75f;
-    s.material.type = MaterialType::MIRROR;
-    s.material.diffuse_material = Vec3(1., 0., 0.);
-    s.material.specular_material = Vec3(1., 0., 0.);
-    s.material.shininess = 16.0;
-    s.material.transparency = 1.0;
-    s.material.index_medium = 1.4;
-  }
-  { //MIRRORED Sphere
-    spheres.resize(spheres.size() + 1);
-    Sphere &s = spheres[spheres.size() - 1];
     s.center = Vec3(-1.0, -1.25, -0.5);
     s.radius = 0.75f;
-    s.material.type = MaterialType::GLASS;
-    s.material.diffuse_material = Vec3(0., 1., 1.);
-    s.material.specular_material = Vec3(0., 1., 1.);
+    // s.material.type = MaterialType::GLASS;
+    s.material.diffuse = 0.2;
+    s.material.mirror = 0.1;
+    s.material.albedo = Vec3(0., 1., 1.);
+    s.material.specular = Vec3(0., 1., 1.);
     s.material.shininess = 16.0;
-    s.material.transparency = 0.;
-    s.material.index_medium = 0.;
   }
 }
 

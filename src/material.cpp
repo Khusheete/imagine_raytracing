@@ -54,14 +54,15 @@ Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &
     );
     
     const float diffuse_contrib = std::max(0.0f, signed_light_direction);
-    const float diffuse = light_attenuation * p_light_data.energy * diffuse_contrib;
+    const float diffuse_energy = light_attenuation * p_light_data.energy * diffuse_contrib;
 
     const Vec3 reflected_dir = light_direction - 2.0f * signed_light_direction * p_surface_normal;
     const float specular_contrib = std::pow(std::max(0.0f, dot(p_camera_direction, reflected_dir)), shininess);
-    const float specular = light_attenuation * p_light_data.energy * specular_contrib;
+    const float specular_energy = light_attenuation * p_light_data.energy * specular_contrib;
 
-    return (diffuse * diffuse_material + specular * specular_material) * p_light_data.color;
+    return (diffuse_energy * albedo + specular_energy * specular) * p_light_data.color;
   }
 
   return Lrgb::ZERO;
 }
+

@@ -100,6 +100,12 @@ namespace kmath {
 
   template<Number T>
   inline T sign(const T a) {
-    return (a > (T)0.0)? (T)1.0 : (a == (T)0.0)? (T)0.0 : (T)-1.0;
+    return ((T)0.0 < a) - ((T)0.0 > a);
+  }
+
+
+  template<Number T>
+  inline T possign(const T a) {
+    return ((T)0.0 <= a) - ((T)0.0 > a);
   }
 }

@@ -35,6 +35,7 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
+#include "thirdparty/kmath/utils.hpp"
 #include "thirdparty/kmath/vector.hpp"
 
 #include <random>
@@ -114,3 +115,16 @@ public:
   }
 };
 
+
+struct UniformHemishereDistribution {
+  kmath::Vec3 normal;
+
+public:
+  template<std::uniform_random_bit_generator Rng>
+  kmath::Vec3 operator()(Rng &p_rng) const {
+    const UniformBallDistribution ball(kmath::Vec3::ZERO, 1.0f);
+    const kmath::Vec3 result = ball(p_rng);
+    const float sign = kmath::possign(dot(result, normal));
+    return sign * result;
+  }
+};

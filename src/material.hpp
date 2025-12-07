@@ -37,31 +37,25 @@
 
 #pragma once
 
+#include "geometry/ray.hpp"
 #include "thirdparty/kmath/vector.hpp"
 #include "thirdparty/kmath/color.hpp"
 #include "geometry/light.hpp"
 
-#include <cmath>
 #include <random>
-
-
-enum class MaterialType : unsigned char {
-  DIFFUSE_BLINN_PHONG,
-  GLASS,
-  MIRROR
-};
 
 
 struct Material {
 public:
-  kmath::Lrgb diffuse_material = kmath::Lrgb::ONE;
-  kmath::Lrgb specular_material = kmath::Lrgb::ZERO;
-  double shininess = 1.0;
+  kmath::Lrgb albedo = kmath::Lrgb::ONE;
+  kmath::Lrgb specular = kmath::Lrgb::ZERO;
+  float shininess = 1.0;
 
-  float index_medium = 0.0f;
-  float transparency = 0.0f;
+  float diffuse = 0.2f;
+  float mirror = 0.0f;
 
-  MaterialType type = MaterialType::DIFFUSE_BLINN_PHONG;
+  // float index_medium = 0.0f;
+  // float transparency = 0.0f;
 
 public:
   kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
@@ -70,7 +64,7 @@ public:
   kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
     using namespace kmath;
   
-    const Lrgb ambiant = diffuse_material * p_ambiant_energy;
+    const Lrgb ambiant = albedo * p_ambiant_energy;
 
     Lrgb light_contribs = Lrgb::ZERO;
     for (const Light &light : p_lights) {
@@ -79,6 +73,28 @@ public:
     }
 
     return ambiant + light_contribs;
+  }
+
+
+  // Returns the direction of a bounce, alongside the strength of the bounced color.
+  template<std::uniform_random_bit_generator Rng>
+  std::pair<kmath::Vec3, float> bounce(Rng &p_rng, const kmath::Vec3 &p_ray_direction, const kmath::Vec3 &p_normal) const {
+    using namespace kmath;
+
+    const float total_weight = diffuse + mirror;
+    std::uniform_real_distribution<float> selector(0.0f, total_weight);
+    const float selection = selector(p_rng);
+
+    if (selection < diffuse) {
+      // This ray is to be bounced as a diffuse ray.
+      const UniformHemishereDistribution bounce_distribution(p_normal);
+      const kmath::Vec3 new_direction = bounce_distribution(p_rng);
+      return std::pair(new_direction, diffuse);
+    } else {
+      // This ray is to be bounced as a reflected ray
+      const Vec3 reflected_direction = reflect(p_ray_direction, p_normal);
+      return std::pair(reflected_direction, mirror);
+    }
   }
 };
 
