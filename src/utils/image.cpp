@@ -36,7 +36,11 @@
 
 
 #include "image.hpp"
+
+#include "thirdparty/kmath/color.hpp"
+#include "thirdparty/stb/stb_image.h"
 #include <algorithm>
+#include <iostream>
 
 
 Image::Image(const size_t p_width, const size_t p_height, const kmath::Lrgb p_fill)
@@ -46,21 +50,76 @@ Image::Image(const size_t p_width, const size_t p_height, const kmath::Lrgb p_fi
 {}
 
 
-Image Image::copy() const {
-  Image image{};
-  image.data = data;
-  image.width = width;
-  image.height = height;
-  return image;
+void Image::resize(const size_t p_new_width, const size_t p_new_height) {
+  width = p_new_width;
+  height = p_new_height;
+  data.resize(get_size());
 }
 
 
-void Image::write_ppm(std::ostream &p_stream) const {
-  p_stream << "P3" << std::endl << width << " " << height << std::endl << 255 << std::endl;
+Image Image::read(const std::filesystem::path &p_path) {
+  int width, height, components;
+  float *image_data = stbi_loadf(p_path.c_str(), &width, &height, &components, 3);
+  Image result(width, height);
+  if (components != 3) {
+    std::cout << components << std::endl;
+    std::cout << "Invalid image" << std::endl;
+    return result;
+  }
+
+  for (size_t i = 0; i < result.get_size(); i++) {
+    result(i) = kmath::Lrgb(
+      image_data[3 * i + 0],
+      image_data[3 * i + 1],
+      image_data[3 * i + 2]
+    );
+  }
+
+  stbi_image_free(image_data);
+  return result;
+}
+
+
+void Image::write_ppm(std::ostream &p_stream, const size_t p_precision) const {
+  p_stream << "P3" << std::endl << width << " " << height << std::endl << p_precision << std::endl;
   for (size_t i = 0; i < data.size(); i++) {
-    p_stream << static_cast<int>(255.0f * std::clamp(data[i].x, 0.0f, 1.0f)) << " ";
-    p_stream << static_cast<int>(255.0f * std::clamp(data[i].y, 0.0f, 1.0f)) << " ";
-    p_stream << static_cast<int>(255.0f * std::clamp(data[i].z, 0.0f, 1.0f)) << "\n";
+    p_stream << static_cast<int>(p_precision * std::clamp(data[i].x, 0.0f, 1.0f)) << " ";
+    p_stream << static_cast<int>(p_precision * std::clamp(data[i].y, 0.0f, 1.0f)) << " ";
+    p_stream << static_cast<int>(p_precision * std::clamp(data[i].z, 0.0f, 1.0f)) << "\n";
   }
   p_stream << std::endl;
+}
+
+
+kmath::Lrgb Image::sample(const float p_u, const float p_v, const SampleMode p_sample_mode) const {
+  switch (p_sample_mode) {
+  break;case SampleMode::NEAREST: {
+    const size_t x = std::round(p_u * (width - 1));
+    const size_t y = std::round(p_v * (height - 1));
+    return (*this)(x, y);
+  }
+  break;case SampleMode::LINEAR: {
+    const float x = p_u * (width - 1);
+    const float y = p_v * (height - 1);
+    const size_t x_coord = std::floor(x);
+    const size_t y_coord = std::floor(y);
+    const float x_part = std::fmod(x, (float)1.0);
+    const float y_part = std::fmod(y, (float)1.0);
+    
+    const kmath::Lrgb c00 = (*this)(x_coord + 0, y_coord + 0);
+    const kmath::Lrgb c01 = (*this)(x_coord + 0, y_coord + 1);
+    const kmath::Lrgb c10 = (*this)(x_coord + 1, y_coord + 0);
+    const kmath::Lrgb c11 = (*this)(x_coord + 1, y_coord + 1);
+
+    const kmath::Lrgb ct = kmath::lerp(c00, c01, x_part);
+    const kmath::Lrgb cb = kmath::lerp(c10, c11, x_part);
+    return kmath::lerp(ct, cb, y_part);
+  }
+  }
+  return kmath::Lrgb::ZERO;
+}
+
+
+kmath::Lrgb Image::sample(const kmath::Vec2 p_uv, const SampleMode p_sample_mode) const {
+  return sample(p_uv.x, p_uv.y, p_sample_mode);
 }

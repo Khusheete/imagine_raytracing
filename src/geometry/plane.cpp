@@ -63,7 +63,12 @@ std::optional<Vec3> get_intersection(const Ray &p_ray, const Plane3 &p_plane) {
     // and not too close to zero (ie. the ray is parallel to the plane)
     return std::optional<Vec3>();
   } else {
-    return std::optional<Vec3>(as_vector(inter));
+    const Vec3 intersection_point = as_vector(inter);
+    const Vec3 direction = intersection_point - p_ray.origin;
+    if (dot(direction, p_ray.direction) < 0.0f) { // Don't return anything if the quad is behind the ray origin.
+      return std::optional<Vec3>();
+    }
+    return intersection_point;
   }
 }
 

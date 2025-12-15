@@ -41,8 +41,6 @@
 #include "thirdparty/kmath/vector.hpp"
 
 #include "ray.hpp"
-#include <cmath>
-
 
 
 struct Sphere {
@@ -55,6 +53,6 @@ public:
 
   Sphere() = default;
   Sphere(const kmath::Vec3 &p_center, const float r);
-  virtual ~Sphere() = default;
+  ~Sphere() = default;
 };
 

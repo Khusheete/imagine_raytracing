@@ -45,6 +45,7 @@
 #include "utils/renderer.hpp"
 
 
+#include <cfloat>
 #include <filesystem>
 
 #include <GL/gl.h>

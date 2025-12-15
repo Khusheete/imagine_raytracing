@@ -50,11 +50,6 @@ std::optional<RayTriangleIntersection> get_intersection(const Ray &p_ray, const 
     tri_coord.x,
     tri_coord.y
   );
-
-  // const Vec3 point =  * a + tri_coord.y * b;
-  // const float error = length(local_intersection - point);
-  // if (error > 0.01) std::cout << point << "  ;  " << local_intersection << std::endl;
-
   intersection.distance = distance(local_intersection, ray.origin);
 
   return intersection;

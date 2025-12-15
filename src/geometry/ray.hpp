@@ -47,6 +47,7 @@
 struct RaySphereIntersection {
   kmath::Vec3 position;
   kmath::Vec3 normal;
+  kmath::Vec2 uv;
   float distance;
   bool exists = false;
   float polar, azimuth;
@@ -56,9 +57,9 @@ struct RaySphereIntersection {
 struct RayMeshIntersection {
   kmath::Vec3 position;
   kmath::Vec3 normal;
+  kmath::Vec2 uv;
   float distance;
   bool exists = false;
-  kmath::Vec2 uv;
   kmath::Vec3 barycentric;
 };
 
@@ -66,9 +67,9 @@ struct RayMeshIntersection {
 struct RaySquareIntersection {
   kmath::Vec3 position;
   kmath::Vec3 normal;
+  kmath::Vec2 uv;
   float distance;
   bool exists = false;
-  kmath::Vec2 uv;
 };
 
 
@@ -82,6 +83,7 @@ public:
     struct Common {
       kmath::Vec3 position;
       kmath::Vec3 normal;
+      kmath::Vec2 uv;
       float distance;
       bool exists = false;
     } common;

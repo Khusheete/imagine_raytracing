@@ -40,7 +40,6 @@
 
 #include <filesystem>
 #include <vector>
-#include <cfloat>
 
 #include "thirdparty/glad/include/glad/glad.h"
 
@@ -123,8 +122,8 @@ public:
   Mesh() = default;
   Mesh(Mesh&&) = default;
   Mesh &operator=(Mesh&&) = default;
-  Mesh(const Mesh&) = default;
-  Mesh &operator=(const Mesh&) = default;
+  Mesh(const Mesh&) = delete;
+  Mesh &operator=(const Mesh&) = delete;
   ~Mesh() = default;
 
 

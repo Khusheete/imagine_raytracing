@@ -41,27 +41,30 @@
 #include "thirdparty/kmath/vector.hpp"
 #include "thirdparty/kmath/color.hpp"
 #include "geometry/light.hpp"
+#include "utils/image.hpp"
 
+#include <optional>
 #include <random>
 
 
 struct Material {
 public:
   kmath::Lrgb albedo = kmath::Lrgb::ONE;
-  kmath::Lrgb specular = kmath::Lrgb::ZERO;
   float shininess = 1.0;
 
-  float diffuse = 0.2f;
+  float diffuse = 0.3f;
+  float specular = 0.2f;
   float mirror = 0.0f;
 
   // float index_medium = 0.0f;
   // float transparency = 0.0f;
+  std::optional<Image> albedo_tex;
 
 public:
-  kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
+  kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Vec2 &p_uv, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
   
   template<typename LightIt, std::uniform_random_bit_generator Rng>
-  kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
+  kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Vec2 &p_uv, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
     using namespace kmath;
   
     const Lrgb ambiant = albedo * p_ambiant_energy;
@@ -69,7 +72,7 @@ public:
     Lrgb light_contribs = Lrgb::ZERO;
     for (const Light &light : p_lights) {
       const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
-      light_contribs += get_light_influence(p_fragment_position, p_surface_normal, p_camera_direction, light.data, light_position);
+      light_contribs += get_light_influence(p_fragment_position, p_surface_normal, p_camera_direction, p_uv, light.data, light_position);
     }
 
     return ambiant + light_contribs;

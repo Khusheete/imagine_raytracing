@@ -62,7 +62,7 @@ RayIntersection RayIntersection::from(const RaySquareIntersection p_rsqu) {
 RayIntersection::PolyIntersection::PolyIntersection(RaySphereIntersection p_rsph): rsph(p_rsph) {}
 RayIntersection::PolyIntersection::PolyIntersection(RayMeshIntersection p_rmsh): rmsh(p_rmsh) {}
 RayIntersection::PolyIntersection::PolyIntersection(RaySquareIntersection p_rsqu): rsqu(p_rsqu) {}
-RayIntersection::PolyIntersection::PolyIntersection(): common(kmath::Vec3::ZERO, kmath::Vec3::ZERO, std::numeric_limits<float>::infinity(), false) {}
+RayIntersection::PolyIntersection::PolyIntersection(): common(kmath::Vec3::ZERO, kmath::Vec3::ZERO, kmath::Vec2::ZERO, std::numeric_limits<float>::infinity(), false) {}
 
 
 kmath::Vec3 reflect(const kmath::Vec3 &p_direction, const kmath::Vec3 &p_normal) {

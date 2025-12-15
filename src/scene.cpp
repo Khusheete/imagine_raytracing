@@ -72,7 +72,7 @@ RayIntersection Scene::compute_intersection(const Ray &p_ray) const {
     }
   }
 
-  // Square intersection
+  // Mesh intersection
   for (size_t i = 0; i < meshes.size(); i++) {
     RayMeshIntersection rmsh = meshes[i].intersect(p_ray);
     if (rmsh.exists && rmsh.distance < result.intersection.common.distance) {
@@ -95,6 +95,7 @@ Vec3 Scene::_intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const
       rsph.position,
       rsph.normal,
       -p_ray.direction,
+      rsph.uv,
       0.1f * Lrgb::ONE,
       p_rng,
       lights
@@ -107,6 +108,7 @@ Vec3 Scene::_intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const
       rsqu.position,
       rsqu.normal,
       -p_ray.direction,
+      rsqu.uv,
       0.1f * Lrgb::ONE,
       p_rng,
       lights
@@ -119,6 +121,7 @@ Vec3 Scene::_intersection_get_color(std::mt19937 &p_rng, const Ray &p_ray, const
       rmsh.position,
       rmsh.normal,
       -p_ray.direction,
+      rmsh.uv,
       0.1f * Lrgb::ONE,
       p_rng,
       lights
@@ -168,6 +171,7 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
     const Material &intersection_material = *_intersection_get_material(scene_inter).value();
     const Vec3 intersection_normal = scene_inter.intersection.common.normal;
     const Vec3 intersection_point = scene_inter.intersection.common.position + 0.0001f * intersection_normal;
+    const Vec2 intersection_uv = scene_inter.intersection.common.uv;
     Lrgb bounce_color = 0.1f * intersection_material.albedo;
 
     for (const Light &light : lights) {
@@ -183,7 +187,7 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
         continue;
       }
 
-      bounce_color += intersection_material.get_light_influence(intersection_point, intersection_normal, ray.direction, light.data, light_position);
+      bounce_color += intersection_material.get_light_influence(intersection_point, intersection_normal, ray.direction, intersection_uv, light.data, light_position);
     }
 
     // Add bounce contribution
@@ -247,7 +251,6 @@ void Scene::setup_single_sphere() {
     s.material.diffuse = 1.0;
     s.material.mirror = 0.2;
     s.material.albedo = Vec3(1., 1., 1);
-    s.material.specular = Vec3(0.2, 0.2, 0.2);
     s.material.shininess = 20;
   }
 }
@@ -272,7 +275,6 @@ void Scene::setup_single_square() {
     Square &s = squares[squares.size() - 1];
     s.set_quad(Vec3(-1., -1., 0.), Vec3(1., 0, 0.), Vec3(0., 1, 0.), Vec2(2.0, 2.0));
     s.material.albedo = Vec3(0.8, 0.8, 0.8);
-    s.material.specular = Vec3(0.8, 0.8, 0.8);
     s.material.shininess = 20;
   }
 }
@@ -300,7 +302,6 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.translate(Vec3(0., 0., -2.));
     s.material.albedo  = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
-    s.material.specular = Vec3(0.6274509803921569, 0.1254901960784314, 0.9411764705882353);
     s.material.shininess = 16.0;
   }
   { //Left Wall
@@ -311,7 +312,6 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.rotate_y(90);
     s.material.albedo = Vec3(1., 0., 0.);
-    s.material.specular = Vec3(1., 0., 0.);
     s.material.shininess = 16.0;
   }
   { //Right Wall
@@ -322,7 +322,6 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(-90);
     s.material.albedo = Vec3(0.0, 1.0, 0.0);
-    s.material.specular = Vec3(0.0, 1.0, 0.0);
     s.material.shininess = 16.0;
   }
   { //Floor
@@ -333,7 +332,6 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(-90);
     s.material.albedo = Vec3(1.0, 1.0, 1.0);
-    s.material.specular = Vec3(1.0, 1.0, 1.0);
     s.material.shininess = 16.0;
   }
   { //Ceiling
@@ -344,7 +342,6 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.rotate_x(90);
     s.material.albedo = Vec3(0.0, 0.0, 1.0);
-    s.material.specular = Vec3(0.0, 0.0, 1.0);
     s.material.shininess = 16.0;
   }
   { //Front Wall
@@ -355,7 +352,6 @@ void Scene::setup_cornell_box() {
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(180);
     s.material.albedo = Vec3(1.0, 1.0, 1.0);
-    s.material.specular = Vec3(1.0, 1.0, 1.0);
     s.material.shininess = 16.0;
   }
   { //MIRRORED Sphere
@@ -363,10 +359,9 @@ void Scene::setup_cornell_box() {
     Sphere &s = spheres[spheres.size() - 1];
     s.center = Vec3(1.0, -1.25, 0.5);
     s.radius = 0.75f;
-    s.material.diffuse = 0.2;
+    s.material.diffuse = 0.4;
     s.material.mirror = 0.8;
     s.material.albedo = Vec3(1., 0., 0.);
-    s.material.specular = Vec3(1., 0., 0.);
     s.material.shininess = 16.0;
   }
   { //GLASS Sphere
@@ -375,11 +370,24 @@ void Scene::setup_cornell_box() {
     s.center = Vec3(-1.0, -1.25, -0.5);
     s.radius = 0.75f;
     // s.material.type = MaterialType::GLASS;
-    s.material.diffuse = 0.2;
+    s.material.diffuse = 0.3;
     s.material.mirror = 0.1;
     s.material.albedo = Vec3(0., 1., 1.);
-    s.material.specular = Vec3(0., 1., 1.);
     s.material.shininess = 16.0;
+  }
+  {
+    // Mesh
+    meshes.emplace_back();
+    Mesh &mesh = meshes.back();
+    mesh.load_obj("assets/models/unit_cube.obj");
+    mesh.scale(0.5f * Vec3::ONE);
+    mesh.translate(Vec3(-1.0, -1.0, 1.0));
+    mesh.material.diffuse = 0.3;
+    mesh.material.mirror = 0.1;
+    mesh.material.albedo = Vec3(0.8, 0., 1.);
+    mesh.material.shininess = 16.0;
+    // mesh.load_obj("assets/models/unit_sphere.obj");
+    // mesh.material.albedo_tex = Image::read("assets/textures/sphere_textures/s7.ppm");
   }
 }
 
@@ -393,7 +401,7 @@ void Scene::setup_simple_mesh() {
     lights.resize(lights.size() + 1);
     Light &light = lights[lights.size() - 1];
     // light.shape = UniformBallDistribution(Vec3(0.0, 1.5, 0.0), 0.1f);
-    light.shape = PointDistribution(Vec3(0.0, 1.5, 0.0));
+    light.shape = PointDistribution(Vec3(0.0, 3.0, 0.0));
     light.data.radius = 2.0f;
     light.data.power_correction = 2.f;
     light.data.color = Lrgb::ONE;
@@ -403,5 +411,7 @@ void Scene::setup_simple_mesh() {
     meshes.emplace_back();
     Mesh &mesh = meshes.back();
     mesh.load_obj("assets/models/unit_cube.obj");
+    // mesh.load_obj("assets/models/unit_sphere.obj");
+    // mesh.material.albedo_tex = Image::read("assets/textures/sphere_textures/s7.ppm");
   }
 }

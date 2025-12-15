@@ -41,10 +41,15 @@
 using namespace kmath;
 
 
-Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &p_surface_normal, const Vec3 &p_camera_direction, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const {
+Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &p_surface_normal, const Vec3 &p_camera_direction, const Vec2 &p_uv, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const {
   const Vec3 light_direction = normalized(p_light_position - p_fragment_position);
   
   const float signed_light_direction = dot(p_surface_normal, light_direction);
+
+  Lrgb albedo_color = albedo;
+  if (albedo_tex.has_value()) {
+    albedo_color = albedo_tex.value().sample(p_uv);
+  }
 
   if (signed_light_direction > 0.0) {
     const float light_distance = distance(p_light_position, p_fragment_position);
@@ -54,13 +59,13 @@ Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &
     );
     
     const float diffuse_contrib = std::max(0.0f, signed_light_direction);
-    const float diffuse_energy = light_attenuation * p_light_data.energy * diffuse_contrib;
+    const float diffuse_energy = diffuse * light_attenuation * p_light_data.energy * diffuse_contrib;
 
     const Vec3 reflected_dir = light_direction - 2.0f * signed_light_direction * p_surface_normal;
     const float specular_contrib = std::pow(std::max(0.0f, dot(p_camera_direction, reflected_dir)), shininess);
-    const float specular_energy = light_attenuation * p_light_data.energy * specular_contrib;
+    const float specular_energy = specular * light_attenuation * p_light_data.energy * specular_contrib;
 
-    return (diffuse_energy * albedo + specular_energy * specular) * p_light_data.color;
+    return (diffuse_energy + specular_energy) * albedo_color * p_light_data.color;
   }
 
   return Lrgb::ZERO;

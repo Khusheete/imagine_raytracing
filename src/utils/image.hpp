@@ -39,6 +39,7 @@
 
 
 #include "thirdparty/kmath/color.hpp"
+#include <filesystem>
 #include <ostream>
 #include <vector>
 
@@ -60,9 +61,19 @@ concept ColorMapper = requires(F f, kmath::Lrgb result_color, const kmath::Lrgb 
 
 class Image {
 public:
+  enum class SampleMode : int {
+    NEAREST,
+    LINEAR,
+  };
+
+
+public:
+
   inline size_t get_width() const { return width; }
   inline size_t get_height() const { return height; }
   inline size_t get_size() const { return data.size(); }
+
+  inline void resize(const size_t p_new_width, const size_t p_new_height);
   
   inline kmath::Lrgb &operator()(const size_t p_index) {
     return data[p_index];
@@ -91,7 +102,7 @@ public:
 
   template<ImageMapper M>
   inline Image copy_map(M p_mapper) const {
-    Image result = copy();
+    Image result = *this;
     for (size_t j = 0; j < height; j++) {
       for (size_t i = 0; i < width; i++) {
         result(i, j) = p_mapper(*this, i, j);
@@ -109,16 +120,19 @@ public:
   }
 
 
-  Image copy() const;
+  kmath::Lrgb sample(const float p_u, const float p_v, const SampleMode p_sample_mode = SampleMode::LINEAR) const;
+  kmath::Lrgb sample(const kmath::Vec2 p_uv, const SampleMode p_sample_mode = SampleMode::LINEAR) const;
 
-  void write_ppm(std::ostream &p_stream) const;
+
+  static Image read(const std::filesystem::path &p_path);
+  void write_ppm(std::ostream &p_stream, const size_t p_precision = 255) const;
   
 
   Image(const size_t p_width, const size_t p_height, const kmath::Lrgb p_fill = kmath::Vec3::ZERO);
   Image(Image&&) = default;
   Image &operator=(Image&&) = default;
-  Image(const Image&) = delete;
-  Image &operator=(const Image&) = delete;
+  Image(const Image&) = default;
+  Image &operator=(const Image&) = default;
   ~Image() = default;
 
 private:

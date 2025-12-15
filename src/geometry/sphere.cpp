@@ -67,6 +67,7 @@ RaySphereIntersection Sphere::intersect(const Ray &p_ray) const {
   intersection.distance = dist;
   intersection.position = pos;
   intersection.normal = kmath::normalized(pos - center);
+  // TODO: calculate uv component
   
   intersection.exists = true;
   return intersection;
