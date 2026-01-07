@@ -38,58 +38,166 @@
 #pragma once
 
 
-#include "tp_utils/src/rendering/mesh.hpp"
-#include "tp_utils/src/rendering/primitives/shader.hpp"
-#include "tp_utils/src/rendering/immediate_geometry.hpp"
-
-#include "geometry/sphere.hpp"
-#include "geometry/square.hpp"
-#include "geometry/mesh.hpp"
-#include "geometry/light.hpp"
-#include "tp_utils/src/rendering/primitives/vbuffer.hpp"
-
-#include <array>
-#include <span>
+#include <algorithm>
+#include <cstddef>
+#include <cstring>
+#include <stdexcept>
+#include <type_traits>
+#include <utility>
 
 
-class Renderer {
-public:
-  inline tputils::ImmediateGeometry &immediate_geometry() { return imgeo; }
-  inline const tputils::BufferLayout *get_default_buffer_layout() const { return &object_layout; }
-
-  void begin_frame();
-  void end_frame();
-
-  // TODO: implement
-  void set_lights(std::span<const Light> &p_lights);
-
-  void set_projection_view_matrix(const kmath::Mat4 &p_projection_view);
-  void set_model_matrix(const kmath::Mat4 &p_model);
-
-  void set_color(const kmath::Lrgb &p_color);
-  void draw_sphere(const Sphere &p_sphere);
-  void draw_rect(const Square &p_square);
-  void draw_mesh(const Mesh &p_mesh);
-
-public:
-  static void init_singleton();
-  static void clean_singleton();
-  static inline Renderer *get_singleton() { return singleton; }
-
-private:
-  Renderer() = default;
-
-private:
-  tputils::ImmediateGeometry imgeo;
-  std::array<tputils::ShaderDataType, 3> object_layout_types = {
-    tputils::ShaderDataType::Vec3, tputils::ShaderDataType::Vec3, tputils::ShaderDataType::Vec2
-  };
-  tputils::BufferLayout object_layout{object_layout_types};
-
-  tputils::ShaderProgram object_shader;
-
-  tputils::TriangleMesh sphere;
+namespace tputils {
   
-private:
-  static Renderer *singleton;
-};
+  // Would not be needed in C++23
+  template<typename T>
+  constexpr std::underlying_type<T>::type to_underlying(T _value)
+  {
+    return static_cast<typename std::underlying_type<T>::type>(_value);
+  }
+
+
+  template<typename T, std::size_t MAX_SIZE>
+  class StackVector
+  {
+  public:
+    using value_type = T;
+    using reference = value_type&;
+    using const_reference = const value_type&;
+    using size_type = std::size_t;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type*;
+    using const_pointer = const value_type*;
+    using iterator = value_type*;
+    using const_iterator = const value_type*;
+
+  public:
+
+    inline constexpr size_type size() const
+    {
+      return element_count;
+    }
+
+    inline constexpr size_type max_size() const
+    {
+      return MAX_SIZE;
+    }
+
+    inline constexpr size_type capacity() const
+    {
+      return MAX_SIZE;
+    }
+
+    inline constexpr reference operator[](const size_type _index)
+    {
+      return elements[_index];
+    }
+
+    inline constexpr const_reference operator[](const size_type _index) const
+    {
+      return (*const_cast<StackVector<value_type, MAX_SIZE>*>(this))[_index];
+    }
+
+    inline constexpr iterator begin()
+    {
+      return &elements[0];
+    }
+
+    inline constexpr const_iterator begin() const
+    {
+      return &elements[0];
+    }
+
+    inline constexpr iterator end()
+    {
+      return &elements[0] + element_count;
+    }
+
+    inline constexpr const_iterator end() const
+    {
+      return &elements[0] + element_count;
+    }
+
+    inline constexpr pointer data()
+    {
+      return &elements[0];
+    }
+
+    inline constexpr const_pointer data() const
+    {
+      return &elements[0];
+    }
+
+    inline constexpr bool empty() const
+    {
+      return element_count == 0;
+    }
+
+    inline constexpr void push_back(const value_type &p_value)
+    {
+      if (size() == MAX_SIZE) throw std::length_error("Cannot push to StackVector past the maximum size.");
+      elements[element_count] = p_value;
+      element_count += 1;
+    }
+
+    inline constexpr void push_back(value_type &&p_value)
+    {
+      if (size() == MAX_SIZE) throw std::length_error("Cannot push to StackVector past the maximum size.");
+      elements[element_count] = p_value;
+      element_count += 1;
+    }
+
+    inline constexpr void pop_back()
+    {
+      element_count -= 1;
+    }
+
+    inline constexpr bool contains(const value_type &p_element) {
+      for (value_type &e : elements) {
+        if (e == p_element) return true;
+      }
+      return false;
+    }
+
+    StackVector() = default;
+    ~StackVector() = default;
+
+    StackVector(StackVector<value_type, MAX_SIZE> &&p_other)
+    {
+      element_count = p_other.element_count;
+      for (size_type i = 0; i < element_count; i++)
+      {
+        elements[i] = std::move(p_other.elements[i]);
+      }
+      p_other.element_count = 0;
+    }
+
+    StackVector(const StackVector<value_type, MAX_SIZE> &p_other)
+    {
+      element_count = p_other.element_count;
+      std::copy(p_other.begin(), p_other.end(), begin());
+    }
+
+    StackVector<value_type, MAX_SIZE> &operator=(StackVector<value_type, MAX_SIZE> &&p_other)
+    {
+      element_count = p_other.element_count;
+      for (size_type i = 0; i < element_count; i++)
+      {
+        elements[i] = std::move(p_other.elements[i]);
+      }
+      p_other.element_count = 0;
+      return *this;
+    }
+
+    StackVector<value_type, MAX_SIZE> &operator=(const StackVector<value_type, MAX_SIZE> &p_other)
+    {
+      element_count = p_other.element_count;
+      std::copy(p_other.begin(), p_other.end(), begin());
+    }
+
+    // TODO: implement `insert`, `emplace`, `emplace_back`, `erase`, `at`, `back`, `front`
+
+  private:
+    value_type elements[MAX_SIZE];
+    size_type element_count = 0;
+  };
+}

@@ -54,19 +54,24 @@ using namespace kmath;
 Renderer *Renderer::singleton = nullptr;
 
 
+void Renderer::set_color(const kmath::Lrgb &p_color) {
+  object_shader.bind_uniform("u_color", p_color);
+}
+
+
 void Renderer::draw_sphere(const Sphere &p_sphere) {
   object_shader.bind_uniform(
     "u_model",
     Mat4::translation(p_sphere.center) * Mat4::scale(p_sphere.radius)
   );
-  object_shader.bind_uniform("u_color", p_sphere.material.albedo);
+  set_color(p_sphere.material.albedo);
   sphere.draw();
 }
 
 
 void Renderer::draw_rect(const Square &p_square) {
   object_shader.bind_uniform("u_model", Mat4::IDENTITY);
-  object_shader.bind_uniform("u_color", p_square.material.albedo);
+  set_color(p_square.material.albedo);
   imgeo.begin(ImmediateGeometry::Mode::TRIANGLES, &object_layout);
 
   const Vec3 bl = p_square.bottom_left;

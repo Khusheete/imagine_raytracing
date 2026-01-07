@@ -35,10 +35,14 @@
 * ------------------------------------------------------------------------------------------------------------------ */
 
 
+#pragma once
+
+
 #include "thirdparty/kmath/utils.hpp"
 #include "thirdparty/kmath/vector.hpp"
 
 #include <random>
+#include <type_traits>
 
 
 struct PointDistribution {
@@ -128,3 +132,20 @@ public:
     return sign * result;
   }
 };
+
+
+template<kmath::Vector<float> V>
+float spatial_random(const V &p_position) {
+  if constexpr(std::is_same<V, float>()) {
+    return spatial_random(kmath::Vec2(p_position, -p_position));
+  } else if constexpr(std::is_same<V, kmath::Vec2>()) {
+    return std::fmod(std::sin(kmath::dot(p_position, kmath::Vec2(12.9898f, 78.233f))) * 43758.5453123f, 1.0f);
+  } else if constexpr(std::is_same<V, kmath::Vec3>()) {
+    return spatial_random(kmath::Vec2(spatial_random(kmath::Vec2(p_position.x, p_position.y)), p_position.z));
+  } else if constexpr(std::is_same<V, kmath::Vec4>()) {
+    return spatial_random(kmath::Vec2(
+      spatial_random(kmath::Vec2(p_position.x, p_position.y)),
+      spatial_random(kmath::Vec2(p_position.z, p_position.z))
+    ));
+  }
+}

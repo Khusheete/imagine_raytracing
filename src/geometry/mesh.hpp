@@ -41,6 +41,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "geometry/acceleration_structures.hpp"
 #include "thirdparty/glad/include/glad/glad.h"
 
 #include "thirdparty/kmath/matrix.hpp"
@@ -71,6 +72,8 @@ public:
   void load_obj(const std::filesystem::path &p_path);
   void recompute_normals();
 
+  void build_acceleration_structure();
+
   void build_arrays();
 
   void scale(const kmath::Vec3 &p_scale);
@@ -82,17 +85,17 @@ public:
 
 
   inline size_t get_vertex_count() {
-    return positions_array.size() / 3;
+    return vertex_positions.size() / 3;
   }
 
 
   inline size_t get_triangle_count() {
-    return triangles_array.size() / 3;
+    return triangle_elements.size() / 3;
   }
   
 
   inline kmath::Vec3 &get_position(const size_t p_index) {
-    return reinterpret_cast<kmath::Vec3*>(positions_array.data())[p_index];
+    return reinterpret_cast<kmath::Vec3*>(vertex_positions.data())[p_index];
   }
 
   inline const kmath::Vec3 &get_position(const size_t p_index) const {
@@ -100,7 +103,7 @@ public:
   }
 
   inline kmath::Vec3 &get_normal(const size_t p_index) {
-    return reinterpret_cast<kmath::Vec3*>(normals_array.data())[p_index];
+    return reinterpret_cast<kmath::Vec3*>(vertex_normals.data())[p_index];
   }
 
   inline const kmath::Vec3 &get_normal(const size_t p_index) const {
@@ -108,7 +111,7 @@ public:
   }
 
   inline kmath::Vec2 &get_uv(const size_t p_index) {
-    return reinterpret_cast<kmath::Vec2*>(uvs_array.data())[p_index];
+    return reinterpret_cast<kmath::Vec2*>(vertex_uvs.data())[p_index];
   }
 
   inline const kmath::Vec2 &get_uv(const size_t p_index) const {
@@ -127,10 +130,12 @@ public:
   ~Mesh() = default;
 
 
-protected:
-  std::vector<float> positions_array;
-  std::vector<float> normals_array;
-  std::vector<float> uvs_array;
-  std::vector<unsigned int> triangles_array;
+private:
+  std::vector<float> vertex_positions;
+  std::vector<float> vertex_normals;
+  std::vector<float> vertex_uvs;
+  std::vector<unsigned int> triangle_elements;
+
+  std::optional<KDTree> acceleration_structure;
 };
 

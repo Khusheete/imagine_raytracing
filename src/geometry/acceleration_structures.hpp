@@ -38,58 +38,79 @@
 #pragma once
 
 
-#include "tp_utils/src/rendering/mesh.hpp"
-#include "tp_utils/src/rendering/primitives/shader.hpp"
-#include "tp_utils/src/rendering/immediate_geometry.hpp"
-
-#include "geometry/sphere.hpp"
-#include "geometry/square.hpp"
-#include "geometry/mesh.hpp"
-#include "geometry/light.hpp"
-#include "tp_utils/src/rendering/primitives/vbuffer.hpp"
-
-#include <array>
+#include <cstddef>
+#include <memory>
 #include <span>
+#include <variant>
 
 
-class Renderer {
+#include "geometry/ray.hpp"
+#include "tp_utils/src/data_structures/stack_vector.hpp"
+#include "tp_utils/src/data_structures/aabb.hpp"
+
+
+class KDTree {
 public:
-  inline tputils::ImmediateGeometry &immediate_geometry() { return imgeo; }
-  inline const tputils::BufferLayout *get_default_buffer_layout() const { return &object_layout; }
 
-  void begin_frame();
-  void end_frame();
+  RayMeshIntersection intersect(const Ray &p_ray) const;
+  void draw() const;
 
-  // TODO: implement
-  void set_lights(std::span<const Light> &p_lights);
+  // The lifetime of the KDTree should exced that of the data pointed by p_triangles and p_positions.
+  static KDTree build_kdtree(std::span<const kmath::Vec3i> p_triangles, std::span<const kmath::Vec3> p_vertex_positions, std::span<const kmath::Vec3> p_normals, std::span<const kmath::Vec2> p_uvs);
 
-  void set_projection_view_matrix(const kmath::Mat4 &p_projection_view);
-  void set_model_matrix(const kmath::Mat4 &p_model);
-
-  void set_color(const kmath::Lrgb &p_color);
-  void draw_sphere(const Sphere &p_sphere);
-  void draw_rect(const Square &p_square);
-  void draw_mesh(const Mesh &p_mesh);
-
-public:
-  static void init_singleton();
-  static void clean_singleton();
-  static inline Renderer *get_singleton() { return singleton; }
 
 private:
-  Renderer() = default;
+  KDTree() = default;  
 
 private:
-  tputils::ImmediateGeometry imgeo;
-  std::array<tputils::ShaderDataType, 3> object_layout_types = {
-    tputils::ShaderDataType::Vec3, tputils::ShaderDataType::Vec3, tputils::ShaderDataType::Vec2
+  constexpr static size_t MAX_ELEM_PER_LEAF = 32;
+
+
+private:
+  struct Node {
+  public:
+    struct Leaf {
+      tputils::StackVector<size_t, MAX_ELEM_PER_LEAF> elements;
+
+    };
+
+    struct Subdivision {
+      std::unique_ptr<Node> le;
+      std::unique_ptr<Node> ge;
+
+      float value;
+
+      enum class Axis : int {
+        X = 0, Y = 1, Z = 2, AXIS_MAX = 3
+      } axis;
+    };
+
+
+
+  public:
+    std::variant<Leaf, Subdivision> data;
   };
-  tputils::BufferLayout object_layout{object_layout_types};
 
-  tputils::ShaderProgram object_shader;
 
-  tputils::TriangleMesh sphere;
-  
 private:
-  static Renderer *singleton;
+  static std::pair<tputils::AABB, tputils::AABB> _cut_aabb(const tputils::AABB &p_parent, const float p_value, const Node::Subdivision::Axis p_axis);
+  static inline float _get_component(const kmath::Vec3 &p_vector, const Node::Subdivision::Axis p_axis) {
+    switch (p_axis) {
+    break;case Node::Subdivision::Axis::X: return p_vector.x;
+    break;case Node::Subdivision::Axis::Y: return p_vector.y;
+    break;case Node::Subdivision::Axis::Z: return p_vector.z;
+    break;case Node::Subdivision::Axis::AXIS_MAX: break;
+    }
+    return 0.0f;
+  };
+
+
+
+private:
+  Node root;
+  tputils::AABB aabb;
+  std::span<const kmath::Vec3i> triangle_elements;
+  std::span<const kmath::Vec3> vertex_positions;
+  std::span<const kmath::Vec3> vertex_normals;
+  std::span<const kmath::Vec2> vertex_uvs;
 };

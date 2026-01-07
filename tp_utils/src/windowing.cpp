@@ -46,7 +46,8 @@ namespace tputils {
 
 
   GLFWwindow *init_window(const char *p_title) {
-    glfwWindowHint(GLFW_RESIZABLE, true);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    // glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -57,6 +58,7 @@ namespace tputils {
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetWindowSize(window, 800, 800);
     return window;
   }
 

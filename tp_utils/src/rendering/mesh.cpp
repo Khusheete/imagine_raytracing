@@ -109,14 +109,14 @@ namespace tputils {
   }
 
 
-  void TriangleMesh::push_triangle(const Triangle &p_triangle) {
+  void TriangleMesh::push_triangle(const TriangleIndices &p_triangle) {
     triangles.push_back(p_triangle);
   }
 
 
   void TriangleMesh::gpu_upload() {
     vertex_buffer.write_data(std::span<const float>(vertex_data));
-    index_buffer.write_data(std::span<const Triangle>(triangles));
+    index_buffer.write_data(std::span<const TriangleIndices>(triangles));
 
     if (!vab.is_initialized()) {
       vab.initialize();
@@ -245,7 +245,7 @@ namespace tputils {
 
       // Create surfaces
       for (size_t i = 0; i < object_index_buffer_size; i += 3) {
-        result.push_triangle(Triangle(
+        result.push_triangle(TriangleIndices(
           object_indices[i + 0],
           object_indices[i + 1],
           object_indices[i + 2]

@@ -410,8 +410,9 @@ void Scene::setup_simple_mesh() {
   {
     meshes.emplace_back();
     Mesh &mesh = meshes.back();
-    mesh.load_obj("assets/models/unit_cube.obj");
-    // mesh.load_obj("assets/models/unit_sphere.obj");
+    mesh.load_obj("assets/models/unit_sphere.obj");
+    mesh.build_acceleration_structure();
+    // mesh.load_obj("assets/models/unit_cube.obj");
     // mesh.material.albedo_tex = Image::read("assets/textures/sphere_textures/s7.ppm");
   }
 }

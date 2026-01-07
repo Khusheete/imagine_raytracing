@@ -254,6 +254,20 @@ Une fois le bug précédent résolu, il est possible de faire le rendu de la boi
 )
 
 
+= Phase 4
+
+
+== Structure d'acceleration: KDTree
+
+Premier essai: 164s 587ms avec ; 73s 353ms sans :(
+
+-> Problème au niveau du parcours de la structure: au lieu de regarder tout l'AABB, je regardais seulement les plans dans le même axe que la division. Ce qui faisait que toute la structure était explorée.
+
+Second essai: 109s 474ms :(
+
+
+Troixième essai: 133s 887ms
+
 = Accès au code
 
 

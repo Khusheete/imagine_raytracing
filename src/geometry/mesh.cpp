@@ -36,6 +36,7 @@
 
 
 #include "mesh.hpp"
+#include "geometry/acceleration_structures.hpp"
 #include "geometry/ray.hpp"
 #include "geometry/triangle.hpp"
 #include "thirdparty/kmath/matrix.hpp"
@@ -56,9 +57,9 @@ void Mesh::load_obj(const std::filesystem::path &p_path) {
   tputils::WavefrontMesh wavefront = tputils::WavefrontMesh::load(p_path);
 
   // Create vertex data suited for single index buffer for positions, normals and uvs
-  positions_array.reserve(sizeof(wavefront.positions[0]) * wavefront.positions.size() / sizeof(float));
-  normals_array.reserve(sizeof(wavefront.normals[0]) * wavefront.positions.size() / sizeof(float));
-  uvs_array.reserve(sizeof(wavefront.uvs[0]) * wavefront.positions.size() / sizeof(float));
+  vertex_positions.reserve(sizeof(wavefront.positions[0]) * wavefront.positions.size() / sizeof(float));
+  vertex_normals.reserve(sizeof(wavefront.normals[0]) * wavefront.positions.size() / sizeof(float));
+  vertex_uvs.reserve(sizeof(wavefront.uvs[0]) * wavefront.positions.size() / sizeof(float));
   uint32_t vertex_count = 0;
 
   std::unordered_map<uint64_t, uint32_t> index_map;
@@ -87,14 +88,14 @@ void Mesh::load_obj(const std::filesystem::path &p_path) {
         kmath::Vec3 position = wavefront.positions[position_index];
         kmath::Vec3 normal = wavefront.normals[normal_index];
         kmath::Vec2 uv = wavefront.uvs[uv_index];
-        positions_array.push_back(position.x);
-        positions_array.push_back(position.y);
-        positions_array.push_back(position.z);
-        normals_array.push_back(normal.x);
-        normals_array.push_back(normal.y);
-        normals_array.push_back(normal.z);
-        uvs_array.push_back(uv.x);
-        uvs_array.push_back(uv.y);
+        vertex_positions.push_back(position.x);
+        vertex_positions.push_back(position.y);
+        vertex_positions.push_back(position.z);
+        vertex_normals.push_back(normal.x);
+        vertex_normals.push_back(normal.y);
+        vertex_normals.push_back(normal.z);
+        vertex_uvs.push_back(uv.x);
+        vertex_uvs.push_back(uv.y);
 
         if (object_indices.size() > object_index_buffer_size) {
           object_indices[object_index_buffer_size] = vertex_count;
@@ -117,44 +118,43 @@ void Mesh::load_obj(const std::filesystem::path &p_path) {
 
     // Create surfaces
     for (size_t i = 0; i < object_index_buffer_size; i++) {
-      triangles_array.push_back(object_indices[i]);
+      triangle_elements.push_back(object_indices[i]);
     }
   }
 }
 
 
-// void Mesh::load_off(const std::string &filename) {
-//   std::ifstream in(filename.c_str());
-//   ASSERT_FATAL_ERROR(in, "Cannot open file " << filename);
-//   std::string offString;
-//   unsigned int sizeV, sizeT, tmp;
-//   in >> offString >> sizeV >> sizeT >> tmp;
-//   vertices.resize(sizeV);
-//   triangles.resize(sizeT);
-//   for (unsigned int i = 0; i < sizeV; i++) {
-//     float x, y, z;
-//     in >> x >> y >> z;
-//     vertices[i].position = kmath::Vec3(x, y, z);
-//   }
-//   int s;
-//   for (unsigned int i = 0; i < sizeT; i++) {
-//     in >> s;
-//     for (unsigned int j = 0; j < 3; j++)
-//       in >> triangles[i][j];
-//   }
-//   in.close();
-// }
+void Mesh::build_acceleration_structure() {
+  acceleration_structure = KDTree::build_kdtree(
+    std::span<const kmath::Vec3i>(
+      reinterpret_cast<const kmath::Vec3i*>(triangle_elements.data()),
+      reinterpret_cast<const kmath::Vec3i*>(triangle_elements.data() + triangle_elements.size())
+    ),
+    std::span<const kmath::Vec3>(
+      reinterpret_cast<const kmath::Vec3*>(vertex_positions.data()),
+      reinterpret_cast<const kmath::Vec3*>(vertex_positions.data() + vertex_positions.size())
+    ),
+    std::span<const kmath::Vec3>(
+      reinterpret_cast<const kmath::Vec3*>(vertex_normals.data()),
+      reinterpret_cast<const kmath::Vec3*>(vertex_normals.data() + vertex_normals.size())
+    ),
+    std::span<const kmath::Vec2>(
+      reinterpret_cast<const kmath::Vec2*>(vertex_uvs.data()),
+      reinterpret_cast<const kmath::Vec2*>(vertex_uvs.data() + vertex_uvs.size())
+    )
+  );
+}
 
 
 void Mesh::recompute_normals() {
   for (unsigned int i = 0; i < get_vertex_count(); i++)
     get_normal(i) = kmath::Vec3(0.0, 0.0, 0.0);
   for (unsigned int i = 0; i < get_triangle_count(); i++) {
-    kmath::Vec3 e01 = get_position(triangles_array[3 * i + 1]) - get_position(triangles_array[3 * i + 0]);
-    kmath::Vec3 e02 = get_position(triangles_array[3 * i + 2]) - get_position(triangles_array[3 * i + 0]);
+    kmath::Vec3 e01 = get_position(triangle_elements[3 * i + 1]) - get_position(triangle_elements[3 * i + 0]);
+    kmath::Vec3 e02 = get_position(triangle_elements[3 * i + 2]) - get_position(triangle_elements[3 * i + 0]);
     kmath::Vec3 n = kmath::cross(e01, e02);
     for (unsigned int j = 0; j < 3; j++)
-      get_normal(triangles_array[3 * i + j]) += n;
+      get_normal(triangle_elements[3 * i + j]) += n;
   }
   for (unsigned int i = 0; i < get_vertex_count(); i++) {
     get_normal(i) = normalized(get_normal(i));
@@ -226,7 +226,7 @@ void Mesh::rotate_z(const float p_angle_degrees) {
 
 
 void Mesh::draw() const {
-  if( triangles_array.size() == 0 ) return;
+  if( triangle_elements.size() == 0 ) return;
   // GLfloat material_color[4] = {material.diffuse_material.x,
   //                              material.diffuse_material.y,
   //                              material.diffuse_material.z,
@@ -252,55 +252,64 @@ void Mesh::draw() const {
 
   Renderer *rd = Renderer::get_singleton();
   rd->set_model_matrix(kmath::Mat4::IDENTITY);
+  rd->set_color(material.albedo);
   
   tputils::ImmediateGeometry &imgeo = rd->immediate_geometry();
 
   imgeo.begin(tputils::ImmediateGeometry::Mode::TRIANGLES, rd->get_default_buffer_layout());
-  for (const uint32_t &index : triangles_array) {
+  for (const uint32_t &index : triangle_elements) {
     const kmath::Vec3 position{
-      positions_array[3 * index + 0],
-      positions_array[3 * index + 1],
-      positions_array[3 * index + 2],
+      vertex_positions[3 * index + 0],
+      vertex_positions[3 * index + 1],
+      vertex_positions[3 * index + 2],
     };
     imgeo.push_vec3(position);
     const kmath::Vec3 normal{
-      normals_array[3 * index + 0],
-      normals_array[3 * index + 1],
-      normals_array[3 * index + 2],
+      vertex_normals[3 * index + 0],
+      vertex_normals[3 * index + 1],
+      vertex_normals[3 * index + 2],
     };
     imgeo.push_vec3(normal);
     const kmath::Vec2 uv{
-      uvs_array[2 * index + 0],
-      uvs_array[2 * index + 1],
+      vertex_uvs[2 * index + 0],
+      vertex_uvs[2 * index + 1],
     };
     imgeo.push_vec2(uv);
   }
   imgeo.end();
+
+  if (acceleration_structure.has_value()) {
+    acceleration_structure->draw();
+  }
 }
 
 
 RayMeshIntersection Mesh::intersect(const Ray &p_ray) const {
+  if (acceleration_structure.has_value()) {
+    return acceleration_structure.value().intersect(p_ray);
+  }
+  
   RayMeshIntersection closest_intersection;
   closest_intersection.distance = FLT_MAX;
 
-  for (size_t triangle_index = 0; triangle_index < triangles_array.size(); triangle_index += 3) {
-    const uint32_t index_a = triangles_array[triangle_index + 0];
+  for (size_t triangle_index = 0; triangle_index < triangle_elements.size(); triangle_index += 3) {
+    const uint32_t index_a = triangle_elements[triangle_index + 0];
     const kmath::Vec3 point_a{
-      positions_array[3 * index_a + 0],
-      positions_array[3 * index_a + 1],
-      positions_array[3 * index_a + 2],
+      vertex_positions[3 * index_a + 0],
+      vertex_positions[3 * index_a + 1],
+      vertex_positions[3 * index_a + 2],
     };
-    const uint32_t index_b = triangles_array[triangle_index + 1];
+    const uint32_t index_b = triangle_elements[triangle_index + 1];
     const kmath::Vec3 point_b{
-      positions_array[3 * index_b + 0],
-      positions_array[3 * index_b + 1],
-      positions_array[3 * index_b + 2],
+      vertex_positions[3 * index_b + 0],
+      vertex_positions[3 * index_b + 1],
+      vertex_positions[3 * index_b + 2],
     };
-    const uint32_t index_c = triangles_array[triangle_index + 2];
+    const uint32_t index_c = triangle_elements[triangle_index + 2];
     const kmath::Vec3 point_c{
-      positions_array[3 * index_c + 0],
-      positions_array[3 * index_c + 1],
-      positions_array[3 * index_c + 2],
+      vertex_positions[3 * index_c + 0],
+      vertex_positions[3 * index_c + 1],
+      vertex_positions[3 * index_c + 2],
     };
     const Triangle tri{{
       point_a, point_b, point_c
@@ -312,32 +321,32 @@ RayMeshIntersection Mesh::intersect(const Ray &p_ray) const {
     if (intersection.distance >= closest_intersection.distance) continue;
 
     const kmath::Vec3 normal_a{
-      normals_array[3 * index_a + 0],
-      normals_array[3 * index_a + 1],
-      normals_array[3 * index_a + 2],
+      vertex_normals[3 * index_a + 0],
+      vertex_normals[3 * index_a + 1],
+      vertex_normals[3 * index_a + 2],
     };
     const kmath::Vec3 normal_b{
-      normals_array[3 * index_b + 0],
-      normals_array[3 * index_b + 1],
-      normals_array[3 * index_b + 2],
+      vertex_normals[3 * index_b + 0],
+      vertex_normals[3 * index_b + 1],
+      vertex_normals[3 * index_b + 2],
     };
     const kmath::Vec3 normal_c{
-      normals_array[3 * index_c + 0],
-      normals_array[3 * index_c + 1],
-      normals_array[3 * index_c + 2],
+      vertex_normals[3 * index_c + 0],
+      vertex_normals[3 * index_c + 1],
+      vertex_normals[3 * index_c + 2],
     };
 
     const kmath::Vec2 uv_a{
-      uvs_array[2 * index_a + 0],
-      uvs_array[2 * index_a + 1],
+      vertex_uvs[2 * index_a + 0],
+      vertex_uvs[2 * index_a + 1],
     };
     const kmath::Vec2 uv_b{
-      uvs_array[2 * index_b + 0],
-      uvs_array[2 * index_b + 1],
+      vertex_uvs[2 * index_b + 0],
+      vertex_uvs[2 * index_b + 1],
     };
     const kmath::Vec2 uv_c{
-      uvs_array[2 * index_c + 0],
-      uvs_array[2 * index_c + 1],
+      vertex_uvs[2 * index_c + 0],
+      vertex_uvs[2 * index_c + 1],
     };
 
     closest_intersection.position = intersection.position;

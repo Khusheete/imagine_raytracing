@@ -49,7 +49,7 @@
 
 namespace tputils {
 
-  typedef kmath::_Vec3<uint32_t> Triangle;
+  typedef kmath::_Vec3<uint32_t> TriangleIndices;
 
   class TriangleMesh {
   public:
@@ -88,10 +88,10 @@ namespace tputils {
 
     inline size_t get_vertex_count() const { return vertex_data.size() / get_vertex_size(); }
 
-    inline const Triangle &get_triangle(const size_t p_index) const {
+    inline const TriangleIndices &get_triangle(const size_t p_index) const {
       return triangles[p_index];
     }
-    inline Triangle &get_triangle(const size_t p_index) {
+    inline TriangleIndices &get_triangle(const size_t p_index) {
       return triangles[p_index];
     }
 
@@ -106,7 +106,7 @@ namespace tputils {
 
     void reserve_triangles(const size_t p_size);
     void resize_triangles(const size_t p_size);
-    void push_triangle(const Triangle &p_triangle);
+    void push_triangle(const TriangleIndices &p_triangle);
 
     void gpu_upload();
     void draw();
@@ -118,7 +118,7 @@ namespace tputils {
 
   private:
     std::vector<float> vertex_data;
-    std::vector<Triangle> triangles;
+    std::vector<TriangleIndices> triangles;
 
     VBuffer vertex_buffer = VBuffer(VBuffer::Kind::VERTEX_BUFFER, VBuffer::Usage::STATIC_DRAW);
     VBuffer index_buffer = VBuffer(VBuffer::Kind::INDEX_BUFFER, VBuffer::Usage::STATIC_DRAW);
