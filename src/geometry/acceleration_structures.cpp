@@ -41,7 +41,6 @@
 #include <algorithm>
 #include <cfloat>
 #include <functional>
-#include <limits>
 #include <memory>
 #include <span>
 #include <stack>
@@ -59,10 +58,6 @@
 #include "tp_utils/src/rendering/immediate_geometry.hpp"
 #include "utils/random.hpp"
 #include "utils/renderer.hpp"
-
-
-#warning remove
-#include "thirdparty/kmath/print.hpp"
 
 
 using namespace kmath;
@@ -388,7 +383,7 @@ KDTree KDTree::build_kdtree(std::span<const Vec3i> p_triangles, std::span<const 
 RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
   RayMeshIntersection closest_intersection;
   closest_intersection.exists = false;
-  closest_intersection.distance = std::numeric_limits<float>::max();
+  closest_intersection.distance = FLT_MAX;
 
   // We know that we don't need to traverse the kdtree, the ray goes outside
   if (!is_ray_aabb_intersection(aabb, p_ray)) {
@@ -423,7 +418,7 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
     };
   };
 
-  auto get_bisection_planes = [](const float p_value, const Node::Subdivision::Axis p_axis) -> Plane3 {
+  auto get_bisection_plane = [](const float p_value, const Node::Subdivision::Axis p_axis) -> Plane3 {
     switch (p_axis) {
     break;case Node::Subdivision::Axis::X: Plane3::plane(Vec3::X, p_value);
     break;case Node::Subdivision::Axis::Y: Plane3::plane(Vec3::Y, p_value);
@@ -481,7 +476,7 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
       const Node::Subdivision &sub = std::get<Node::Subdivision>(node->data);
       const auto [le_aabb, ge_aabb] = _cut_aabb(parent_aabb, sub.value, sub.axis);
       const auto [t_min, t_max] = get_full_aabb_intersect(parent_aabb);
-      const Plane3 bis_plane = get_bisection_planes(sub.value, sub.axis);
+      const Plane3 bis_plane = get_bisection_plane(sub.value, sub.axis);
       const float t_bis = get_plane_intersection_distance(bis_plane);
 
       if (t_min < t_bis) {
