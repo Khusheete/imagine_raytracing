@@ -344,11 +344,6 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
 
 
   // Helper functions
-  Line3 line = Line3::line(p_ray.origin, p_ray.direction);
-  auto get_plane_intersection_distance = [&](const Plane3 &p_plane) -> float {
-    return dot(as_vector(meet(line, p_plane)), p_ray.direction);
-  };
-
   auto get_full_aabb_intersect = [&](const AABB &p_aabb) -> std::pair<float, float> {
     const float txb = (p_aabb.begin.x - p_ray.origin.x) / p_ray.direction.x;
     const float txe = (p_aabb.end.x   - p_ray.origin.x) / p_ray.direction.x;
@@ -364,30 +359,17 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
   };
 
   // We know that we don't need to traverse the kdtree, the ray goes outside
-  {
-    const auto [tnear, tfar] = get_full_aabb_intersect(aabb);
-    if (tfar < tnear) {
-      return closest_intersection;
-    }
+  const auto [t_near, t_far] = get_full_aabb_intersect(aabb);
+  if (t_far < t_near) {
+    return closest_intersection;
   }
 
-  auto get_bisection_plane = [](const float p_value, const Node::Subdivision::Axis p_axis) -> Plane3 {
-    // TODO: optimize
-    switch (p_axis) {
-    break;case Node::Subdivision::Axis::X: Plane3::plane(Vec3::X, p_value);
-    break;case Node::Subdivision::Axis::Y: Plane3::plane(Vec3::Y, p_value);
-    break;case Node::Subdivision::Axis::Z: Plane3::plane(Vec3::Z, p_value);
-    break;case Node::Subdivision::Axis::AXIS_MAX: break;
-    }
-    return {};
-  };
-  
   // Structure traversal
-  std::stack<std::tuple<const Node*, AABB>> to_explore;
-  to_explore.push({&root, aabb});
+  std::stack<std::tuple<const Node*, float, float>> to_explore;
+  to_explore.push({&root, t_near, t_far});
 
   while (!to_explore.empty()) {
-    const auto [node, parent_aabb] = to_explore.top();
+    const auto [node, t_min, t_max] = to_explore.top();
     to_explore.pop();
 
     if (std::holds_alternative<Node::Leaf>(node->data)) {
@@ -425,24 +407,42 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
         closest_intersection.normal = normal;
         closest_intersection.uv = uv;
         closest_intersection.barycentric = intersection.barycentric;
+        closest_intersection.exists = true;
+      }
+
+      if (closest_intersection.exists) {
+        return closest_intersection;
       }
     } else {
       const Node::Subdivision &sub = std::get<Node::Subdivision>(node->data);
-      const auto [le_aabb, ge_aabb] = _cut_aabb(parent_aabb, sub.value, sub.axis);
-      const auto [t_min, t_max] = get_full_aabb_intersect(parent_aabb);
-      const Plane3 bis_plane = get_bisection_plane(sub.value, sub.axis);
-      const float t_bis = get_plane_intersection_distance(bis_plane);
 
-      if (t_min < t_bis) {
-        to_explore.push({sub.le.get(), le_aabb});
+      const float ray_origin_comp = _get_component(p_ray.origin, sub.axis);
+      const float ray_direction_comp = _get_component(p_ray.direction, sub.axis);
+      const float t_hit = (sub.value - ray_origin_comp) / ray_direction_comp;
+
+      const bool le_first = (ray_origin_comp < sub.value)
+        || (ray_origin_comp == sub.value && ray_direction_comp <= 0.0f);
+
+      const Node *first, *second;
+      if (le_first) {
+        first = sub.le.get();
+        second = sub.ge.get();
+      } else {
+        first = sub.ge.get();
+        second = sub.le.get();
       }
-      if (t_max > t_bis) {
-        to_explore.push({sub.ge.get(), ge_aabb});
+
+      if (t_max <= t_hit || t_hit < 0.0f) {
+        to_explore.push({first, t_min, t_max});
+      } else if (t_hit <= t_min) {
+        to_explore.push({second, t_min, t_max});
+      } else {
+        to_explore.push({second, t_hit, t_max});
+        to_explore.push({first, t_min, t_hit});
       }
     }
   }
 
-  closest_intersection.exists = (closest_intersection.distance != FLT_MAX);
   return closest_intersection;
 }
 
@@ -453,6 +453,11 @@ void KDTree::draw() const {
   
   std::stack<std::tuple<const Node*, AABB>> to_explore;
   to_explore.push({&root, aabb});
+
+  // DEBUG: values to see only part of the tree :)
+  const size_t path = 0b110;
+  const size_t path_size = 0;
+  size_t path_index = 0;
 
   while (!to_explore.empty()) {
     const auto [node, parent_aabb] = to_explore.top();
@@ -483,6 +488,17 @@ void KDTree::draw() const {
     } else {
       const Node::Subdivision &sub = std::get<Node::Subdivision>(node->data);
       const auto [le_aabb, ge_aabb] = _cut_aabb(parent_aabb, sub.value, sub.axis);
+
+      if (path_index < path_size) {
+        const size_t next = (path >> path_index) & 1;
+        path_index += 1;
+        if (next) {
+          to_explore.push({sub.ge.get(), ge_aabb});
+        } else {
+          to_explore.push({sub.le.get(), le_aabb});
+        }
+        continue;
+      }
       to_explore.push({sub.le.get(), le_aabb});
       to_explore.push({sub.ge.get(), ge_aabb});
     }
