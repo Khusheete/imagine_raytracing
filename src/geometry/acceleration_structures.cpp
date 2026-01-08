@@ -159,49 +159,6 @@ void draw_aabb(const AABB &p_aabb) {
 }
 
 
-bool is_ray_aabb_intersection(const AABB &p_aabb, const Ray &p_ray) {
-  if (
-    (p_ray.direction.x >= 0.0f && p_aabb.end.x <= p_ray.origin.x)
-    || (p_ray.direction.x <= 0.0f && p_aabb.begin.x >= p_ray.origin.x)
-    || (p_ray.direction.y >= 0.0f && p_aabb.end.y <= p_ray.origin.y)
-    || (p_ray.direction.y <= 0.0f && p_aabb.begin.y >= p_ray.origin.y)
-    || (p_ray.direction.z >= 0.0f && p_aabb.end.z <= p_ray.origin.z)
-    || (p_ray.direction.z <= 0.0f && p_aabb.begin.z >= p_ray.origin.z)
-  ) {
-    return false;
-  }
-
-  auto is_in_rectangle = [](const Vec2 &p_point, const Vec2 &p_min, const Vec2 &p_max) -> bool {
-    return p_min.x <= p_point.x && p_point.x <= p_max.x && p_min.y <= p_point.y && p_point.y <= p_max.y;
-  };
-  
-  const Line3 line = Line3::line(p_ray.direction, p_ray.origin);
-  
-  const float x = (
-   p_ray.origin.x <= p_aabb.begin.x
-   || (p_ray.origin.x <= p_aabb.end.x && p_ray.direction.x < 0.0f)
-  )? p_aabb.begin.x : p_aabb.end.x;
-  const float y = (
-   p_ray.origin.y <= p_aabb.begin.y
-   || (p_ray.origin.y <= p_aabb.end.y && p_ray.direction.y < 0.0f)
-  )? p_aabb.begin.y : p_aabb.end.y;
-  const float z = (
-   p_ray.origin.z <= p_aabb.begin.z
-   || (p_ray.origin.z <= p_aabb.end.z && p_ray.direction.z < 0.0f)
-  )? p_aabb.begin.z : p_aabb.end.z;
-
-  const Vec3 x_intersect = as_vector(meet(line, Plane3::plane(Vec3::X, x)));
-  const Vec3 y_intersect = as_vector(meet(line, Plane3::plane(Vec3::Y, y)));
-  const Vec3 z_intersect = as_vector(meet(line, Plane3::plane(Vec3::Z, z)));
-
-  return (
-    is_in_rectangle(x_intersect.yz(), p_aabb.begin.yz(), p_aabb.end.yz())
-    || is_in_rectangle(y_intersect.zx(), p_aabb.begin.zx(), p_aabb.end.zx())
-    || is_in_rectangle(z_intersect.xy(), p_aabb.begin.xy(), p_aabb.end.xy())
-  );
-}
-
-
 std::pair<AABB, AABB> KDTree::_cut_aabb(const AABB &p_parent, const float p_value, const Node::Subdivision::Axis p_axis) {
   switch (p_axis) {
   case Node::Subdivision::Axis::X:
@@ -385,32 +342,20 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
   closest_intersection.exists = false;
   closest_intersection.distance = FLT_MAX;
 
-  // We know that we don't need to traverse the kdtree, the ray goes outside
-  if (!is_ray_aabb_intersection(aabb, p_ray)) {
-    return closest_intersection;
-  }
-
-  Line3 line = Line3::line(p_ray.origin, p_ray.direction);
 
   // Helper functions
+  Line3 line = Line3::line(p_ray.origin, p_ray.direction);
   auto get_plane_intersection_distance = [&](const Plane3 &p_plane) -> float {
     return dot(as_vector(meet(line, p_plane)), p_ray.direction);
   };
 
   auto get_full_aabb_intersect = [&](const AABB &p_aabb) -> std::pair<float, float> {
-    const Plane3 pxb = Plane3::plane(Vec3::X, p_aabb.begin.x);
-    const Plane3 pxe = Plane3::plane(Vec3::X, p_aabb.end.x);
-    const Plane3 pyb = Plane3::plane(Vec3::Y, p_aabb.begin.y);
-    const Plane3 pye = Plane3::plane(Vec3::Y, p_aabb.end.y);
-    const Plane3 pzb = Plane3::plane(Vec3::Z, p_aabb.begin.z);
-    const Plane3 pze = Plane3::plane(Vec3::Z, p_aabb.end.z);
-
-    const float txb = get_plane_intersection_distance(pxb);
-    const float txe = get_plane_intersection_distance(pxe);
-    const float tyb = get_plane_intersection_distance(pyb);
-    const float tye = get_plane_intersection_distance(pye);
-    const float tzb = get_plane_intersection_distance(pzb);
-    const float tze = get_plane_intersection_distance(pze);
+    const float txb = (p_aabb.begin.x - p_ray.origin.x) / p_ray.direction.x;
+    const float txe = (p_aabb.end.x   - p_ray.origin.x) / p_ray.direction.x;
+    const float tyb = (p_aabb.begin.y - p_ray.origin.y) / p_ray.direction.y;
+    const float tye = (p_aabb.end.y   - p_ray.origin.y) / p_ray.direction.y;
+    const float tzb = (p_aabb.begin.z - p_ray.origin.z) / p_ray.direction.z;
+    const float tze = (p_aabb.end.z   - p_ray.origin.z) / p_ray.direction.z;
 
     return {
       std::max({std::min(txb, txe), std::min(tyb, tye), std::min(tzb, tze)}),
@@ -418,7 +363,16 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
     };
   };
 
+  // We know that we don't need to traverse the kdtree, the ray goes outside
+  {
+    const auto [tnear, tfar] = get_full_aabb_intersect(aabb);
+    if (tfar < tnear) {
+      return closest_intersection;
+    }
+  }
+
   auto get_bisection_plane = [](const float p_value, const Node::Subdivision::Axis p_axis) -> Plane3 {
+    // TODO: optimize
     switch (p_axis) {
     break;case Node::Subdivision::Axis::X: Plane3::plane(Vec3::X, p_value);
     break;case Node::Subdivision::Axis::Y: Plane3::plane(Vec3::Y, p_value);
