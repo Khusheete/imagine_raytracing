@@ -48,8 +48,10 @@
 #include <string>
 
 #include "thirdparty/kmath/vector.hpp"
+#include "thirdparty/kmath/print.hpp"
 
 
+#include "tp_utils/src/data_structures/gradient.hpp"
 #include "tp_utils/src/rendering/camera.hpp"
 
 #include "tp_utils/src/rendering/primitives/shader.hpp"
@@ -260,6 +262,16 @@ void ray_trace_from_camera() {
   const float sample_division = 1.0f / static_cast<float>(sample_count);
   Image image(image_width, image_height);
 
+  std::vector<uint64_t> pixel_time(image_width * image_height);
+  Image performance_heat_map(image_width, image_height);
+  tputils::Gradient performance_gradient;
+  performance_gradient.set_outside_color(Lrgb(1.0f, 1.0f, 1.0f));
+  performance_gradient.add_point(Lrgb(0.012f, 0.035f, 0.057f), 0.0f);
+  performance_gradient.add_point(Lrgb(0.031f, 0.205f, 0.011f), 0.25f);
+  performance_gradient.add_point(Lrgb(0.759f, 0.483f, 0.045f), 0.5f);
+  performance_gradient.add_point(Lrgb(0.504f, 0.169f, 0.039f), 0.75f);
+  performance_gradient.add_point(Lrgb(0.950f, 0.011f, 0.005f), 1.0f);
+
   const Mat4 inv_proj = inverse(camera.get_projection_matrix(aspect_ratio));
   const Mat4 inv_view = camera.get_inverse_view_matrix();
   const Mat4 inv_mvp = inv_view * inv_proj;
@@ -326,13 +338,18 @@ void ray_trace_from_camera() {
         rngs[i] = std::mt19937(master_gen(master_rng));
       }
     }
-    // TODO: use blue noise
-    std::uniform_real_distribution<float> randf;
+    std::uniform_real_distribution<float> randf; // TODO: use blue noise
+
+    // Get the maximum execution time per thread
+    std::vector<size_t> exec_times(thread_count);
 
     // Execute render phases
     exec_phase(
       "Scene render",
       [&](const size_t p_thread_id, const size_t p_exec_index) -> void {
+        Profiler pixel_profiler;
+        pixel_profiler.start();
+
         std::mt19937 &rng = rngs[p_thread_id];
         const size_t x = p_exec_index % image_width;
         const size_t y = p_exec_index / image_width;
@@ -350,6 +367,15 @@ void ray_trace_from_camera() {
         }
 
         image(p_exec_index) *= sample_division;
+
+        pixel_profiler.end();
+
+        // Write execution time
+        const size_t exec_time = pixel_profiler.get_exec_time_nanoseconds();
+        pixel_time[p_exec_index] = exec_time;
+        if (exec_time > exec_times[p_thread_id]) {
+          exec_times[p_thread_id] = exec_time;
+        }
       }
     );
 
@@ -359,19 +385,53 @@ void ray_trace_from_camera() {
         image(p_exec_index) = tonemap_agx(image(p_exec_index));
       }
     );
+
+    // Get the max execution time
+    size_t max_exec_time_l = exec_times[0];
+    for (size_t i = 1; i < thread_count; i++) {
+      if (max_exec_time_l < exec_times[i]) {
+        max_exec_time_l = exec_times[i];
+      }
+    }
+    auto time_scale_function = [&](const double p_time) -> double {
+      return std::sqrt(p_time * 1e-6);
+    };
+    const double max_exec_time = time_scale_function(static_cast<double>(max_exec_time_l));
+
+    exec_phase(
+      "Write performance heat map",
+      [&]([[maybe_unused]] const size_t p_thread_id, const size_t p_exec_index) -> void {
+        const double pixel_exec_time = time_scale_function(static_cast<double>(pixel_time[p_exec_index]));
+        const double time_prop = pixel_exec_time / max_exec_time;
+        performance_heat_map(p_exec_index) = performance_gradient.sample(time_prop);
+      }
+    );
   }
   full_render_profile.end();
   std::cout << "\tRender done in " << full_render_profile.get_exec_time() << std::endl;
 
   // Write the raytraced image to a file
-  std::string filename = "./rendu.ppm";
-  std::ofstream f(filename.c_str(), std::ios::binary);
-  if (f.fail()) {
-    std::cout << "Could not open file: " << filename << std::endl;
-    return;
+  {
+    const char *filename = "./render.ppm";
+    std::ofstream f(filename, std::ios::binary);
+    if (f.fail()) {
+      std::cout << "Could not open file: " << filename << std::endl;
+      return;
+    }
+    image.write_ppm(f);
+    f.close();
   }
-  image.write_ppm(f);
-  f.close();
+
+  {
+    const char *filename = "./performance_heat_map.ppm";
+    std::ofstream f(filename, std::ios::binary);
+    if (f.fail()) {
+      std::cout << "Could not open file: " << filename << std::endl;
+      return;
+    }
+    performance_heat_map.write_ppm(f);
+    f.close();
+  }
 
   std::cout << "Image saved." << std::endl;
 }

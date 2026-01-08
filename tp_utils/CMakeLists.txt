@@ -22,6 +22,7 @@ add_library(tputils STATIC
   src/time.cpp
   src/utils.cpp
   src/source_preprocessing.cpp
+  src/data_structures/gradient.cpp
 )
 
 
