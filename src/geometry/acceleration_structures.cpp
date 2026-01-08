@@ -402,7 +402,7 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
     return dot(as_vector(meet(line, p_plane)), p_ray.direction);
   };
 
-  auto get_lazy_aabb_intersect = [&](const AABB &p_aabb) -> std::pair<float, float> {
+  auto get_full_aabb_intersect = [&](const AABB &p_aabb) -> std::pair<float, float> {
     const Plane3 pxb = Plane3::plane(Vec3::X, p_aabb.begin.x);
     const Plane3 pxe = Plane3::plane(Vec3::X, p_aabb.end.x);
     const Plane3 pyb = Plane3::plane(Vec3::Y, p_aabb.begin.y);
@@ -418,8 +418,8 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
     const float tze = get_plane_intersection_distance(pze);
 
     return {
-      std::min({txb, txe, tyb, tye, tzb, tze}),
-      std::max({txb, txe, tyb, tye, tzb, tze}),
+      std::max({std::min(txb, txe), std::min(tyb, tye), std::min(tzb, tze)}),
+      std::min({std::max(txb, txe), std::max(tyb, tye), std::max(tzb, tze)}),
     };
   };
 
@@ -480,7 +480,7 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
     } else {
       const Node::Subdivision &sub = std::get<Node::Subdivision>(node->data);
       const auto [le_aabb, ge_aabb] = _cut_aabb(parent_aabb, sub.value, sub.axis);
-      const auto [t_min, t_max] = get_lazy_aabb_intersect(parent_aabb);
+      const auto [t_min, t_max] = get_full_aabb_intersect(parent_aabb);
       const Plane3 bis_plane = get_bisection_planes(sub.value, sub.axis);
       const float t_bis = get_plane_intersection_distance(bis_plane);
 
