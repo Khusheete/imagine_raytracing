@@ -268,6 +268,8 @@ Second essai: 109s 474ms :(
 
 Troixième essai: 133s 887ms
 
+Avec le test principal d'AABB: 93s 753ms
+
 = Accès au code
 
 
