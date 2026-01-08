@@ -52,7 +52,6 @@
 #include "geometry/ray.hpp"
 #include "geometry/triangle.hpp"
 #include "thirdparty/kmath/color.hpp"
-#include "thirdparty/kmath/euclidian_flat_3d.hpp"
 #include "thirdparty/kmath/vector.hpp"
 #include "tp_utils/src/debug.hpp"
 #include "tp_utils/src/rendering/immediate_geometry.hpp"
