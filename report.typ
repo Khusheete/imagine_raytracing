@@ -270,6 +270,8 @@ Troixième essai: 133s 887ms
 
 Avec le test principal d'AABB: 93s 753ms
 
+Victoire !! 2s 624ms (aka. 28x reduction !!!)
+
 = Accès au code
 
 
