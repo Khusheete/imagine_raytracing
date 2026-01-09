@@ -615,7 +615,7 @@ void print_help() {
 void init_scenes() {
   camera.set_position(kmath::Vec3(0., 0., 3.1));
 
-  selected_scene = 1;
+  selected_scene = 0;
   scenes.resize(2);
   // scenes[0].setup_single_sphere();
   // scenes[1].setup_single_square();

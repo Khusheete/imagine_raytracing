@@ -172,7 +172,7 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
     const Vec3 intersection_normal = scene_inter.intersection.common.normal;
     const Vec3 intersection_point = scene_inter.intersection.common.position + 0.0001f * intersection_normal;
     const Vec2 intersection_uv = scene_inter.intersection.common.uv;
-    Lrgb bounce_color = 0.1f * intersection_material.albedo;
+    Lrgb bounce_color = 0.5f * intersection_material.diffuse * intersection_material.albedo;
 
     for (const Light &light : lights) {
       const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
@@ -196,7 +196,11 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
     // Setup for the next light bounce
     const auto [bounce_direction, bounce_strength] = intersection_material.bounce(p_rng, ray.direction, intersection_normal);
     bounce_contribution *= bounce_strength;
-    ray = Ray(intersection_point, bounce_direction);
+
+    const float bounce_dir_sign = kmath::sign(kmath::dot(bounce_direction, intersection_normal));
+    const Vec3 bounce_point = scene_inter.intersection.common.position + bounce_dir_sign * 0.0001f * intersection_normal;
+
+    ray = Ray(bounce_point, bounce_direction);
   }
   
   return color;
@@ -354,25 +358,27 @@ void Scene::setup_cornell_box() {
     s.material.albedo = Vec3(1.0, 1.0, 1.0);
     s.material.shininess = 16.0;
   }
-  { //MIRRORED Sphere
+  { // GLASS Sphere
     spheres.resize(spheres.size() + 1);
     Sphere &s = spheres[spheres.size() - 1];
-    s.center = Vec3(1.0, -1.25, 0.5);
+    s.center = Vec3(1.0, -1.0, 0.5);
+    s.radius = 0.75f;
+    s.material.diffuse = 0.04;
+    s.material.mirror = 0.1;
+    s.material.transparancy = 0.95;
+    s.material.specular = 0.35;
+    s.material.refractive_index = 1.1f;
+    s.material.albedo = Vec3(0., 1., 1.);
+    s.material.shininess = 16.0;
+  }
+  { // MIRRORED Sphere
+    spheres.resize(spheres.size() + 1);
+    Sphere &s = spheres[spheres.size() - 1];
+    s.center = Vec3(-1.0, -1.0, -0.5);
     s.radius = 0.75f;
     s.material.diffuse = 0.4;
     s.material.mirror = 0.8;
     s.material.albedo = Vec3(1., 0., 0.);
-    s.material.shininess = 16.0;
-  }
-  { //GLASS Sphere
-    spheres.resize(spheres.size() + 1);
-    Sphere &s = spheres[spheres.size() - 1];
-    s.center = Vec3(-1.0, -1.25, -0.5);
-    s.radius = 0.75f;
-    // s.material.type = MaterialType::GLASS;
-    s.material.diffuse = 0.3;
-    s.material.mirror = 0.1;
-    s.material.albedo = Vec3(0., 1., 1.);
     s.material.shininess = 16.0;
   }
   {

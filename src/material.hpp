@@ -38,6 +38,9 @@
 #pragma once
 
 #include "geometry/ray.hpp"
+#include "thirdparty/kmath/euclidian_flat_3d.hpp"
+#include "thirdparty/kmath/motor_3d.hpp"
+#include "thirdparty/kmath/rotor_3d.hpp"
 #include "thirdparty/kmath/vector.hpp"
 #include "thirdparty/kmath/color.hpp"
 #include "geometry/light.hpp"
@@ -55,9 +58,9 @@ public:
   float diffuse = 0.3f;
   float specular = 0.2f;
   float mirror = 0.0f;
+  float transparancy = 0.0f;
 
-  // float index_medium = 0.0f;
-  // float transparency = 0.0f;
+  float refractive_index = 1.458f;
   std::optional<Image> albedo_tex;
 
 public:
@@ -84,19 +87,61 @@ public:
   std::pair<kmath::Vec3, float> bounce(Rng &p_rng, const kmath::Vec3 &p_ray_direction, const kmath::Vec3 &p_normal) const {
     using namespace kmath;
 
-    const float total_weight = diffuse + mirror;
+    const float diffuse_cutoff = diffuse;
+    const float mirror_cutoff = diffuse + mirror;
+
+    const float total_weight = diffuse + mirror + transparancy;
+
     std::uniform_real_distribution<float> selector(0.0f, total_weight);
     const float selection = selector(p_rng);
 
-    if (selection < diffuse) {
+    if (selection < diffuse_cutoff) {
       // This ray is to be bounced as a diffuse ray.
       const UniformHemishereDistribution bounce_distribution(p_normal);
       const kmath::Vec3 new_direction = bounce_distribution(p_rng);
       return std::pair(new_direction, diffuse);
-    } else {
+    } else if (selection < mirror_cutoff) {
       // This ray is to be bounced as a reflected ray
       const Vec3 reflected_direction = reflect(p_ray_direction, p_normal);
       return std::pair(reflected_direction, mirror);
+    } else {
+      // This ray is to be bounced as a mirrored ray
+      constexpr float AIR_REFRACTIVE_INDEX = 1.000293f;
+
+      float incident_refractive_index;
+      float medium_refractive_index;
+      Vec3 refraction_normal;
+
+      if (kmath::dot(p_ray_direction, p_normal) <= 0.0f) {
+        incident_refractive_index = AIR_REFRACTIVE_INDEX;
+        medium_refractive_index = refractive_index;
+        refraction_normal = -p_normal;
+      } else {
+        incident_refractive_index = refractive_index;
+        medium_refractive_index = AIR_REFRACTIVE_INDEX;
+        refraction_normal = p_normal;
+      }
+
+      const kmath::Line3 axis = kmath::meet(
+        Plane3::plane(refraction_normal, 0.0f),
+        Plane3::plane(p_ray_direction, 0.0f)
+      );;
+
+      const float sin_incident_angle = kmath::magnitude(axis);
+      const float sin_refracted_angle = incident_refractive_index * sin_incident_angle / medium_refractive_index;
+
+      if (sin_refracted_angle > 1.0f) {
+        // The ray cannot be bounced, it is reflected
+        const Vec3 reflected_direction = reflect(p_ray_direction, p_normal);
+        return std::pair(reflected_direction, transparancy);
+      }
+
+      const kmath::Rotor3 rotation = kmath::get_real_part(kmath::exp(sin_refracted_angle * kmath::normalized(axis)));
+
+      return std::pair(
+        kmath::transform(refraction_normal, rotation),
+        transparancy
+      );
     }
   }
 };
