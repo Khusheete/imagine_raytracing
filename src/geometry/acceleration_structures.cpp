@@ -391,14 +391,14 @@ RayMeshIntersection KDTree::intersect(const Ray &p_ray) const {
 
         const Vec3 normal = normalized(
           intersection.barycentric.x * vertex_normals[element.x]
-          + intersection.barycentric.y * vertex_normals[element.x]
-          + intersection.barycentric.z * vertex_normals[element.x]
+          + intersection.barycentric.y * vertex_normals[element.y]
+          + intersection.barycentric.z * vertex_normals[element.z]
         );
 
         const Vec2 uv = (
           intersection.barycentric.x * vertex_uvs[element.x]
-          + intersection.barycentric.y * vertex_uvs[element.x]
-          + intersection.barycentric.z * vertex_uvs[element.x]
+          + intersection.barycentric.y * vertex_uvs[element.y]
+          + intersection.barycentric.z * vertex_uvs[element.z]
         );
 
         closest_intersection.position = intersection.position;

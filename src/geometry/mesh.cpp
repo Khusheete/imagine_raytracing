@@ -220,7 +220,7 @@ void Mesh::rotate_y(const float p_angle_degrees) {
 
 void Mesh::rotate_z(const float p_angle_degrees) {
   float angle = p_angle_degrees * M_PI / 180.;
-  kmath::Mat3 rotation = kmath::Mat3::y_rotation(angle);
+  kmath::Mat3 rotation = kmath::Mat3::z_rotation(angle);
   apply_transformation_matrix(rotation);
 }
 

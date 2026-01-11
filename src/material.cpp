@@ -71,3 +71,12 @@ Lrgb Material::get_light_influence(const Vec3 &p_fragment_position, const Vec3 &
   return Lrgb::ZERO;
 }
 
+
+kmath::Lrgb Material::get_ambiant_contribution(const kmath::Vec2 &p_uv) const {
+  Lrgb albedo_color = albedo;
+  if (albedo_tex.has_value()) {
+    albedo_color = albedo_tex.value().sample(p_uv);
+  }
+  return 0.5f * diffuse * albedo_color;
+}
+

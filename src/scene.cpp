@@ -172,7 +172,7 @@ Lrgb Scene::ray_trace_recursive(std::mt19937 &p_rng, const Ray &p_ray, const int
     const Vec3 intersection_normal = scene_inter.intersection.common.normal;
     const Vec3 intersection_point = scene_inter.intersection.common.position + 0.0001f * intersection_normal;
     const Vec2 intersection_uv = scene_inter.intersection.common.uv;
-    Lrgb bounce_color = 0.5f * intersection_material.diffuse * intersection_material.albedo;
+    Lrgb bounce_color = intersection_material.get_ambiant_contribution(intersection_uv);
 
     for (const Light &light : lights) {
       const Vec3 light_position = std::visit([&](const auto &p_shape) -> Vec3 { return p_shape(p_rng); }, light.shape);
@@ -325,7 +325,11 @@ void Scene::setup_cornell_box() {
     s.translate(Vec3(0., 0., -2.));
     s.scale(Vec3(2., 2., 1.));
     s.rotate_y(-90);
-    s.material.albedo = Vec3(0.0, 1.0, 0.0);
+    s.rotate_x(180.0);
+    // s.material.albedo = Vec3(0.0, 1.0, 0.0);
+    s.material.albedo_tex = Image::read("assets/textures/sphere_textures/s1.ppm");
+    s.material.diffuse = 0.2;
+    s.material.specular = 0.05;
     s.material.shininess = 16.0;
   }
   { //Floor
@@ -417,8 +421,9 @@ void Scene::setup_simple_mesh() {
     meshes.emplace_back();
     Mesh &mesh = meshes.back();
     mesh.load_obj("assets/models/unit_sphere.obj");
+    mesh.rotate_z(180.0);
     mesh.build_acceleration_structure();
-    // mesh.load_obj("assets/models/unit_cube.obj");
-    // mesh.material.albedo_tex = Image::read("assets/textures/sphere_textures/s7.ppm");
+    mesh.material.diffuse = 1.0;
+    mesh.material.albedo_tex = Image::read("assets/textures/sphere_textures/s1.ppm");
   }
 }

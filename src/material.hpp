@@ -65,6 +65,7 @@ public:
 
 public:
   kmath::Lrgb get_light_influence(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Vec2 &p_uv, const LightData &p_light_data, const kmath::Vec3 &p_light_position) const;
+  kmath::Lrgb get_ambiant_contribution(const kmath::Vec2 &p_uv) const;
   
   template<typename LightIt, std::uniform_random_bit_generator Rng>
   kmath::Lrgb get_color(const kmath::Vec3 &p_fragment_position, const kmath::Vec3 &p_surface_normal, const kmath::Vec3 &p_camera_direction, const kmath::Vec2 &p_uv, const kmath::Lrgb &p_ambiant_energy, Rng &p_rng, const LightIt &p_lights) const {
