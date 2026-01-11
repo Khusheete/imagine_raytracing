@@ -85,7 +85,7 @@ Au fur et à mesure que des fonctionnalités sont ajoutés, les images prennent 
 )
 
 
-Heureusement, le lancé de rayon est un algorithme fortement parallélisable, et d'ailleurs, il est exclusivement tourné sur des cartes graphiques pour cette raison. Pour garder le rendu en c++ et éviter de devoir implémenter les structures d'accélération sur le GPU (car on ne peut pas utiliser les structures d'accéleration de Vulkan ou DirectX dans ce projet, car leurs implémentation est opaque), j'ai plutôt décidé de faire tourner le lancé de rayon sur plusieurs threads. Le faire maintenant permet d'avoir une implémentation sur plusieurs threads avant d'implémenter des techniques de rendu et de post-processing complexes.
+Heureusement, le lancé de rayon est un algorithme fortement parallélisable, et d'ailleurs, il est exclusivement tourné sur des cartes graphiques pour cette raison. Pour garder le rendu en c++ et éviter de devoir implémenter les structures d'accélération sur le GPU (car on ne peut pas utiliser les structures d'accélération de Vulkan ou DirectX dans ce projet, car leurs implémentation est opaque), j'ai plutôt décidé de faire tourner le lancé de rayon sur plusieurs threads. Le faire maintenant permet d'avoir une implémentation sur plusieurs threads avant d'implémenter des techniques de rendu et de post-processing complexes.
 
 #figure(
  caption: [Temps de rendu avant et après l'implémentation de multithreading (avec 32 thread logiques sur le processeur)],
@@ -257,20 +257,182 @@ Une fois le bug précédent résolu, il est possible de faire le rendu de la boi
 = Phase 4
 
 
-== Structure d'acceleration: KDTree
-
-Premier essai: 164s 587ms avec ; 73s 353ms sans :(
-
--> Problème au niveau du parcours de la structure: au lieu de regarder tout l'AABB, je regardais seulement les plans dans le même axe que la division. Ce qui faisait que toute la structure était explorée.
-
-Second essai: 109s 474ms :(
+== Structure d'accélération: KDTree
 
 
-Troixième essai: 133s 887ms
+=== Erreurs d'implémentation
 
-Avec le test principal d'AABB: 93s 753ms
+Pour présenter mon implémentation de kdtree, la structure d'acceleration utilisée pour faire le rendu de maillages triangulaires, il me semble interessant de raconter (résumé bien sûr) les étapes prises avant d'y arriver. Surtout qu'il à été assez long à implémenter correctement.
 
-Victoire !! 2s 624ms (aka. 28x reduction !!!)
+D'abord, puisque le but est d'accélérer le temps de rendu, voilà @kdtree_sphere_scene la scène qui sera utilisée pour éstimer les performances. Avec ces structures d'accelerations, on s'attend à voir de très gros impacts sur les performances pour les comparaisons avec/sans, donc il n'y a pas besoin de donner plus de précisions qu'à la seconde près.
+
+#figure(
+ caption: [Image d'un maillage triangulaire d'une uv-sphère. Le temps de rendu _sans_ structure d'accélération est d'environs 73s.],
+ image("image_captures/phase4/render_kdtree_yay.png", width: 40%)
+) <kdtree_sphere_scene>
+
+Tout d'abord, pour la construction du KDTree est utilisé un algorithme naif qui coupe le maillage sur chacun des axes successivement selon la médiane de la position des triangles. La position utilisée pour les triangles est leur barycentre. Le partitionnement obtenu @kdtree_visu correspond bien à la forme de la structure.
+
+#figure(
+ caption: [Visualisation des feuilles du KDTree. On affiche les AABB des feuilles ainsi que le barycentre des triangles qu'elles contiennent.],
+ image("image_captures/phase4/kdtree.png", width: 50%),
+) <kdtree_visu>
+
+Pour la première implémentation du parcours de la structure... L'image @kdtree_sphere_scene était bien obtenue, mais le rendu prenait 165s ! Plus du double du temps sans utiliser le KDTree ! Ici, au moment de calculer les intersection avec tous les plans des AABB des noeuds du KDTree, je ne regardais que les plans dans le même axe que la division. Ce qui faisait que toute la structure était explorée ! D'où l'augmentation drastique dans le temps de calcul.
+
+Le soucis est que même avec ce changement le rendu prenait toujours entre 100s et 140s (en fonction des différentes modifications que j'essayais de faire au parcours - d'ailleurs tous ne donnaient pas une sphère complète).
+
+Pour avoir une chance de savoir d'où les problèmes de performances venaient, j'ai décidé de rendre sur une image une visualisation du temps de calcul utilisé pour chaque pixel lors du passe de raytracing (je ne compte pas le temps de post processing). Non seulement les informations données par ces images donnent plus d'informations sur l'état du rendu que les images rendues elles-mêmes, mais elles possèdent aussi une qualité artistique intéressante.
+
+
+#figure(
+ caption: [Coût de rendu pour chaque pixel. À gauche, sans kdtree, à droite, avec. L'échelle de couleur est purement relative au pixel qui a pris le plus de temps à être calculé *dans cette image*. Plus la couleur s'approche du rouge, plus le temps de calcul est grand.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_3.png"),
+  image("image_captures/phase4/performance_map_kdtree_3.png"),
+ )
+) <kdtree_wrong_heatmap1>
+
+@kdtree_wrong_heatmap1 on observe à gauche (avec KDTree) des motifs étonnants sur la sphère elle-même, qui indique que l'algorithme de parcours n'est pas bon. En effet, on devrait plutôt voir apparaitre des lignes allignées sur les axes plutôt que des axes radiaux.
+
+Le temps de faire chaque test n'étant pas insignifiant, c'est à ce moment là que j'ai limité le parcours dans le KDTree uniquement aux rayons qui intersectent sa boite englobante alignée sur les axes. Ce qui permet aussi de tester la validité de cette partie de l'algorithme (elle ne l'était pas). Après celà le temps de rendu était réduit autours des 90s.
+
+Les figures suivantes montrent les cartes thermiques de temps de calcul avec les images rendues associées au fur et à mesure des modifications que j'ai faites à l'algorithme de parcours de KDTree.
+
+#figure(
+ caption: [Cartes thermiques juste après avoir limité le parcours de KDTree à un rayon intersectant son AABB. Un pixel est noir quand son temps de rendu est négligeable devant le temps de calcul des autres pixels.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_4.png"),
+  image("image_captures/phase4/performance_map_kdtree_4b.png"),
+ )
+) <kdtree_wrong_heatmap2>
+
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_5_oopsie1.png"),
+  image("image_captures/phase4/render_kdtree_5_oopsie1.png"),
+ )
+)
+
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_5_oopsie2.png"),
+  image("image_captures/phase4/render_kdtree_5_oopsie2.png"),
+ )
+)
+
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_5_oopsie3.png"),
+  image("image_captures/phase4/render_kdtree_5_oopsie3.png"),
+ )
+)
+
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue. Oops, l'intersection d'AABB ne fonctionne plus ! Mais l'image n'a pas beaucoup changée ?],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_5_oopsie4.png"),
+  image("image_captures/phase4/render_kdtree_5_oopsie4.png"),
+ )
+)
+
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue. On se rapproche d'un algorithme correcte: on commence à voir les AABBs des feuilles apparaître.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_5_oopsie5.png"),
+  image("image_captures/phase4/render_kdtree_5_oopsie5.png"),
+ )
+)
+
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue. Encore un peu plus de feuilles visibles ! Il reste un biais pour explorer les feuilles une direction.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_5_oopsie6.png"),
+  image("image_captures/phase4/render_kdtree_5_oopsie6.png"),
+ )
+)
+
+
+=== Un KDTree réussi !
+
+
+Après beaucoup de débug, le parcours du KDTree fonctionne ! On peut voir apparaître assez clairement @kdtree les feuilles de l'arbre, ainsi que la sphère elle même (qui demande plus de performances à cause des rebonds).
+
+Et combien de temps prends ce rendu ? 2.6s ! Pour une division par presque 28 du temps de rendu !
+
+#figure(
+ caption: [À gauche, la carte thermique de performance, à droite, l'image rendue.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/performance_map_kdtree_yay.png"),
+  image("image_captures/phase4/render_kdtree_yay.png"),
+ )
+) <kdtree>
+
+
+Si on regardes bien la carte thermique, on peut remarquer que les temps de calculs les plus élevés se situent en dehors de l'AABB de la sphère. Il semble probable que ces pics de temps de calcul soient dues au scheduler du système d'exploitation (même si ça n'est pas certain). Au fur et à mesure des changement d'algorithmes de parcours, le temps de calcul total est devenu de plus en plus petit, et la présence de ces artéfactes explique le fait que les cartes thermiques soient devenues de plus en plus vertes, même si elles sont sensées être relatives.
+
+
+== Réfractions
+
+
+#figure(
+ caption: [Image de sphères transparantes avec réfraction (indice de réfraction ~1.1) selon deux points de vues.],
+ grid(
+  columns: 2,
+  column-gutter: 2pt,
+  image("image_captures/phase4/refractive_sphere.png"),
+  image("image_captures/phase4/scene_with_refraction.png"),
+ )
+)
+
+L'implémentation des réfractions est très proche de celle des réflexions. Il suffit d'ajouter un coefficient pour la réfraction en plus des coefficients diffus et réflectifs. Ce qui permet de donner une probabilité de réfracter le rayon.
+
+Il y a cependant deux points auquels il faut faire attention. Le premier est plutôt simple: pour éviter qu'un rayon réfléchi (de manière diffuse et mirroir) rentre en collision directement avec la surface réfléchissante à cause d'erreurs de précision, il fallait rajouter une fraction de la normale à la position. Le soucis étant qu'un rayon réfracté doit rentrer dans l'objet en question. Pour que cela puisse se faire, il faut donc rajouter une fraction de la normale _dans_ la direction du rayon qui repars (qu'il soit réfracté ou réfléchit).
+
+Le second viens de la loie de Snell-Descartes qui mets en relation l'angle incident $i_1$, l'angle réfracté $i_2$, et les indices optiques $n_1$ et $n_2$ des deux millieux correspondants: $n_1 sin i_1 = n_2 sin i_2$. Cette formule nous permet de trouver le sinus de l'angle réfracté: $sin i_2 = n_1 / n_2 sin i_1$. Le soucis étant que si $n_1 >= n_2$, alors on peut trouver $sin i_2 > 1$, ce qui n'est pas sensé être possible. En effet, quand on obtient un tel résultat, le rayon ne peut pas être réfracté (il sera plutôt réfléchit).
+
+
+== Textures
+
+
+#figure(
+ caption: [Scène avec un mur comprenant une texture],
+ image("image_captures/phase4/scene_with_texture.png", width: 50%)
+) <scene_with_texture>
+
+#figure(
+ caption: [Sphère avec une texture de la Terre],
+ image("image_captures/phase4/earth.png", width: 50%),
+) <earth>
+
+Le calcul des coordonnées UV pour les modèles 3D ainsi que les quads ayant déjà été fait lors des calculs pour les intersections avec les rayons. Il suffit d'échantillonner les textures selon ces coordonnées UV pour faire le rendu avec les texture, ce qui donne les résultats @scene_with_texture et @earth.
 
 = Accès au code
 
